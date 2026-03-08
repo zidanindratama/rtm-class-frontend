@@ -47,6 +47,7 @@ git clone https://github.com/<your-org-or-user>/<your-repo>.git .
 cp .env.example .env
 # edit .env and set real values
 nano .env
+# set NEXT_PUBLIC_CLIENT_DOMAIN=https://app.rtm-corndog.my.id
 
 docker compose -p rtm-class-frontend -f docker-compose.prod.yml up -d --build
 docker compose -p rtm-class-frontend -f docker-compose.prod.yml ps
@@ -86,4 +87,66 @@ docker compose -p rtm-class-frontend -f docker-compose.prod.yml logs -f
 docker compose -p rtm-class-frontend -f docker-compose.prod.yml restart
 docker compose -p rtm-class-frontend -f docker-compose.prod.yml down
 docker system df
+```
+
+## 7) Setup domain `app.rtm-corndog.my.id` with Nginx
+### A. Point DNS
+At DNS provider, create record:
+- Type: `A`
+- Host/Name: `app`
+- Value: `43.157.247.2`
+- TTL: default
+
+### B. Install Nginx + Certbot in VM
+```bash
+sudo apt update
+sudo apt install -y nginx certbot python3-certbot-nginx
+sudo ufw allow 'Nginx Full'
+# optional (recommended): close direct app port from public internet
+# sudo ufw delete allow 3000
+```
+
+### C. Create Nginx reverse proxy config
+```bash
+sudo tee /etc/nginx/sites-available/app.rtm-corndog.my.id >/dev/null <<'EOF'
+server {
+    listen 80;
+    server_name app.rtm-corndog.my.id;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_read_timeout 60s;
+    }
+}
+EOF
+```
+
+Enable site:
+```bash
+sudo ln -sf /etc/nginx/sites-available/app.rtm-corndog.my.id /etc/nginx/sites-enabled/app.rtm-corndog.my.id
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+### D. Enable HTTPS (Let's Encrypt)
+After DNS propagated:
+```bash
+sudo certbot --nginx -d app.rtm-corndog.my.id
+```
+
+Choose redirect to HTTPS when prompted.
+
+### E. Verify
+```bash
+curl -I http://app.rtm-corndog.my.id
+curl -I https://app.rtm-corndog.my.id
+sudo systemctl status nginx --no-pager
 ```

@@ -33,7 +33,7 @@ export function HowItWorks() {
   return (
     <section
       id="how-it-works"
-      className="py-32 px-4 md:px-8 bg-muted/20 border-y border-border/20"
+      className="overflow-x-clip py-32 px-4 md:px-8 bg-muted/20 border-y border-border/20"
     >
       <div className="max-w-4xl mx-auto" ref={containerRef}>
         <motion.div
@@ -57,7 +57,7 @@ export function HowItWorks() {
             className="absolute left-8 md:left-1/2 top-0 w-[2px] bg-primary -translate-x-1/2 origin-top"
           />
 
-          <div className="space-y-24">
+          <div className="space-y-24 overflow-x-clip">
             {steps.map((item, i) => (
               <div
                 key={item.step}

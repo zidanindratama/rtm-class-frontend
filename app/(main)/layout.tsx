@@ -7,7 +7,7 @@ export default function MainLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="relative min-h-screen flex flex-col bg-background selection:bg-primary/20">
+    <div className="relative min-h-screen flex flex-col overflow-x-clip bg-background selection:bg-primary/20">
       <div
         className="pointer-events-none fixed inset-0 z-[100] h-full w-full opacity-[0.03] dark:opacity-[0.05]"
         style={{
@@ -16,7 +16,7 @@ export default function MainLayout({
       />
 
       <Navbar />
-      <main className="flex-1 w-full relative z-10 pt-20">{children}</main>
+      <main className="relative z-10 flex-1 w-full overflow-x-clip pt-20">{children}</main>
       <Footer />
     </div>
   );

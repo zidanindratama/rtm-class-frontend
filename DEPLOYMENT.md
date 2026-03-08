@@ -62,8 +62,7 @@ docker compose -p rtm-class-frontend -f docker-compose.prod.yml up -d --build
 
 ## 4) GitHub Actions CI/CD setup
 This repo already includes:
-- `.github/workflows/ci.yml`
-- `.github/workflows/cd.yml`
+- `.github/workflows/ci-cd.yml`
 
 ### Required GitHub Secrets
 Set in `Settings > Secrets and variables > Actions`:
@@ -75,7 +74,7 @@ Set in `Settings > Secrets and variables > Actions`:
 
 ## 5) CD flow
 1. Push to `main`.
-2. `CD` workflow SSH to VM.
+2. `CI/CD` workflow validates build, then SSH to VM.
 3. It ensures folder `/opt/rtm-class/rtm-class-frontend` exists.
 4. It pulls latest code.
 5. It runs:

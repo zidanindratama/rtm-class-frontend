@@ -1,0 +1,28 @@
+import { HeroContact } from "@/components/main/contact/hero-contact";
+import { DirectConnect } from "@/components/main/contact/direct-connect";
+import { ContactForm } from "@/components/main/contact/contact-form";
+import { SystemStatus } from "@/components/main/contact/system-status";
+import { Faq } from "@/components/main/contact/faq";
+import { LocationHq } from "@/components/main/contact/location-hq";
+import { CtaSection } from "@/components/main/landing/cta-section";
+
+export default function ContactPage() {
+  return (
+    <div className="flex flex-col min-h-screen w-full bg-background overflow-hidden">
+      <HeroContact />
+      <DirectConnect />
+      <ContactForm />
+      <SystemStatus />
+      <Faq />
+      <LocationHq />
+      <CtaSection
+        title="Ready to Transform Education?"
+        description="Experience firsthand how RTM Class AI automates your learning materials."
+        primaryBtnText="Create Account"
+        primaryBtnHref="/auth/sign-up"
+        secondaryBtnText="Sign In"
+        secondaryBtnHref="/auth/sign-in"
+      />
+    </div>
+  );
+}

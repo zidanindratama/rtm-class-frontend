@@ -66,11 +66,11 @@ This repo already includes:
 
 ### Required GitHub Secrets
 Set in `Settings > Secrets and variables > Actions`:
-- `VPS_HOST` = `43.157.247.2`
-- `VPS_USERNAME` = `jidan`
-- `VPS_PASSWORD` = password user `jidan`
-- `VPS_PORT` = `22`
-- `VPS_APP_DIR` = `/opt/rtm-class/rtm-class-frontend`
+- `VPS_HOST` = `<your-vps-ip-or-domain>`
+- `VPS_USERNAME` = `<your-vps-user>`
+- `VPS_PASSWORD` = `<your-vps-password>`
+- `VPS_PORT` = `<your-ssh-port>` (usually `22`)
+- `VPS_APP_DIR` = `<deploy-directory>` (example: `/opt/rtm-class/rtm-class-frontend`)
 
 ## 5) CD flow
 1. Push to `main`.
@@ -93,7 +93,7 @@ docker system df
 At DNS provider, create record:
 - Type: `A`
 - Host/Name: `app`
-- Value: `43.157.247.2`
+- Value: `<your-vps-ip>`
 - TTL: default
 
 ### B. Install Nginx + Certbot in VM

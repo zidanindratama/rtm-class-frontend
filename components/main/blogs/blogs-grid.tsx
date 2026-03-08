@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import { ArrowUpRight, CalendarDays, Clock3, Search, X } from "lucide-react";
 import { mockBlogs } from "@/lib/mock-blogs";
 import {
@@ -22,6 +23,7 @@ function extractReadTimeMinutes(readTime: string) {
 }
 
 export function BlogsGrid() {
+  const smoothEase = [0.16, 1, 0.3, 1] as const;
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedTag, setSelectedTag] = useState("all");
@@ -116,10 +118,29 @@ export function BlogsGrid() {
     setPage(1);
   };
 
+  const cardVariants = {
+    hidden: { opacity: 0, y: 18 },
+    show: (index: number) => ({
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.45,
+        delay: 0.03 * index,
+        ease: smoothEase,
+      },
+    }),
+  };
+
   return (
     <section className="px-4 py-16 md:px-8 md:py-20">
       <div className="mx-auto max-w-6xl">
-        <div className="rounded-3xl border border-border/50 bg-card/60 p-5 backdrop-blur-sm md:p-6">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.55, ease: smoothEase }}
+          className="rounded-3xl border border-border/50 bg-card/60 p-5 backdrop-blur-sm md:p-6"
+        >
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <label className="relative block">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -184,20 +205,33 @@ export function BlogsGrid() {
           <p className="mt-4 text-sm text-muted-foreground">
             Showing {filteredAndSortedBlogs.length} article{filteredAndSortedBlogs.length === 1 ? "" : "s"}
           </p>
-        </div>
+        </motion.div>
 
         {paginatedBlogs.length === 0 ? (
-          <div className="mt-6 rounded-3xl border border-border/45 bg-card/55 p-10 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.45, ease: smoothEase }}
+            className="mt-6 rounded-3xl border border-border/45 bg-card/55 p-10 text-center"
+          >
             <p className="text-xl font-semibold text-foreground">No matching articles found.</p>
             <p className="mt-2 text-sm text-muted-foreground">
               Try adjusting your search keyword or filter selection.
             </p>
-          </div>
+          </motion.div>
         ) : (
           <>
-            <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {paginatedBlogs.map((blog) => (
-                <article
+            <motion.div
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, margin: "-40px" }}
+              className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3"
+            >
+              {paginatedBlogs.map((blog, index) => (
+                <motion.article
+                  custom={index}
+                  variants={cardVariants}
                   key={blog.id}
                   className="group flex h-full flex-col rounded-3xl border border-border/50 bg-card/65 p-6 backdrop-blur-sm transition duration-300 hover:-translate-y-1 hover:border-primary/35 hover:shadow-xl hover:shadow-primary/10"
                 >
@@ -231,11 +265,17 @@ export function BlogsGrid() {
                     Read article
                     <ArrowUpRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                   </Link>
-                </article>
+                </motion.article>
               ))}
-            </div>
+            </motion.div>
 
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.08, ease: smoothEase }}
+              className="mt-8 flex flex-wrap items-center justify-center gap-2"
+            >
               <button
                 type="button"
                 disabled={safePage === 1}
@@ -268,7 +308,7 @@ export function BlogsGrid() {
               >
                 Next
               </button>
-            </div>
+            </motion.div>
           </>
         )}
       </div>

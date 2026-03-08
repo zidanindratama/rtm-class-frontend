@@ -24,14 +24,22 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
 import { type APISingleResponse } from "@/types/api-response";
 import { CreateClassPayload, type ClassDetailResponse } from "./class-types";
 import { EditClassForm } from "./edit-class-form";
+import { ACADEMIC_YEARS, CLASS_LEVELS } from "./class-constants";
 
-// 1. Zod Schema based on your API Contract
+// ─── Zod Schema ────────────────────────────────────────────────────────────
 export const classFormSchema = z.object({
   name: z.string().min(1, "Class name is required."),
   institutionName: z.string().optional(),
@@ -50,7 +58,7 @@ export function ClassFormPage({ mode, classId }: ClassFormPageProps) {
   const router = useRouter();
   const isEditMode = mode === "edit";
 
-  // 2. GET API: Fetch class detail if in edit mode
+  // GET class detail (edit mode)
   const {
     data: detailResponse,
     isLoading: isLoadingClass,
@@ -63,7 +71,7 @@ export function ClassFormPage({ mode, classId }: ClassFormPageProps) {
     errorMessage: "Failed to load class detail.",
   });
 
-  // 3. POST API: Create new class
+  // POST create class
   const createClassMutation = usePostData<unknown, CreateClassPayload>({
     key: ["admin", "classes", "create"],
     endpoint: "/classes",
@@ -75,7 +83,7 @@ export function ClassFormPage({ mode, classId }: ClassFormPageProps) {
     },
   });
 
-  // 4. Form Initialization (for Create Mode)
+  // Form (create mode)
   const createForm = useForm<ClassFormValues>({
     resolver: zodResolver(classFormSchema),
     defaultValues: {
@@ -120,7 +128,7 @@ export function ClassFormPage({ mode, classId }: ClassFormPageProps) {
       </div>
 
       <div className="grid gap-6">
-        <Card >
+        <Card>
           <CardHeader>
             <CardTitle>Class Information</CardTitle>
             <CardDescription>
@@ -139,18 +147,18 @@ export function ClassFormPage({ mode, classId }: ClassFormPageProps) {
                 Unable to load Class detail.
               </p>
             ) : isEditMode && detailResponse ? (
-              // EDIT/VIEW MODE COMPONENT
               <EditClassForm
                 data={detailResponse.data}
                 onCancel={() => router.push("/dashboard/classes")}
               />
             ) : (
-              // CREATE MODE COMPONENT
+              // ── CREATE MODE ──────────────────────────────────────────────
               <Form {...createForm}>
                 <form
                   onSubmit={createForm.handleSubmit(handleCreate)}
                   className="flex flex-col gap-4"
                 >
+                  {/* Class Name */}
                   <FormField
                     control={createForm.control}
                     name="name"
@@ -169,6 +177,7 @@ export function ClassFormPage({ mode, classId }: ClassFormPageProps) {
                   />
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Institution Name */}
                     <FormField
                       control={createForm.control}
                       name="institutionName"
@@ -176,42 +185,76 @@ export function ClassFormPage({ mode, classId }: ClassFormPageProps) {
                         <FormItem>
                           <FormLabel>Institution Name</FormLabel>
                           <FormControl>
-                            <Input placeholder="e.g., SMA 1" {...field} />
+                            <Input
+                              placeholder="e.g., SMA Negeri 1"
+                              {...field}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
 
+                    {/* Academic Year — Select */}
                     <FormField
                       control={createForm.control}
                       name="academicYear"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Academic Year</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g., 2026/2027" {...field} />
-                          </FormControl>
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select academic year" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {ACADEMIC_YEARS.map((year) => (
+                                <SelectItem key={year} value={year}>
+                                  {year}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                   </div>
 
+                  {/* Class Level — Select */}
                   <FormField
                     control={createForm.control}
                     name="classLevel"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Class Level</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., 10, 11, or 12" {...field} />
-                        </FormControl>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select class level" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {CLASS_LEVELS.map((level) => (
+                              <SelectItem key={level} value={level}>
+                                Grade {level}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
 
+                  {/* Description */}
                   <FormField
                     control={createForm.control}
                     name="description"

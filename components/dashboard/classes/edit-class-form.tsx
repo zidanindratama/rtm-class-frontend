@@ -14,6 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea"; 
 import { ClassDetailResponse } from "./class-types";
 import { classFormSchema, ClassFormValues } from "./class-form-page";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ACADEMIC_YEARS, CLASS_LEVELS } from "./class-constants";
 export function EditClassForm({ 
   data, 
   onCancel 
@@ -72,34 +74,65 @@ export function EditClassForm({
             )}
           />
 
+          {/* Academic Year — Select */}
           <FormField
             control={editForm.control}
             name="academicYear"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Academic Year</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select academic year" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {ACADEMIC_YEARS.map((year) => (
+                      <SelectItem key={year} value={year}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
           />
         </div>
 
+        {/* Class Level — Select */}
         <FormField
           control={editForm.control}
           name="classLevel"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Class Level</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
+              <Select
+                onValueChange={field.onChange}
+                value={field.value}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select class level" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {CLASS_LEVELS.map((level) => (
+                    <SelectItem key={level} value={level}>
+                      Grade {level}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
         />
+
 
         <FormField
           control={editForm.control}

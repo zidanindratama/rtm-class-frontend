@@ -18,7 +18,6 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
           port: ${{ secrets.VPS_PORT }}
-          script_stop: true
           script: |
             set -eu
 
@@ -40,5 +39,8 @@ jobs:
               cp .env.production .env
             fi
 
-            docker compose -f docker-compose.prod.yml up -d --build
+            docker compose -p rtm-class-frontend -f docker-compose.prod.yml down --remove-orphans || true
+            docker rm -f rtm-class-frontend >/dev/null 2>&1 || true
+            docker network rm rtm-class-frontend_default >/dev/null 2>&1 || true
+            docker compose -p rtm-class-frontend -f docker-compose.prod.yml up -d --build
             docker image prune -f

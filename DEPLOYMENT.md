@@ -48,15 +48,15 @@ cp .env.example .env
 # edit .env and set real values
 nano .env
 
-docker compose -f docker-compose.prod.yml up -d --build
-docker compose -f docker-compose.prod.yml ps
+docker compose -p rtm-class-frontend -f docker-compose.prod.yml up -d --build
+docker compose -p rtm-class-frontend -f docker-compose.prod.yml ps
 ```
 
 Update deploy:
 ```bash
 cd /opt/rtm-class/rtm-class-frontend
 git pull origin main
-docker compose -f docker-compose.prod.yml up -d --build
+docker compose -p rtm-class-frontend -f docker-compose.prod.yml up -d --build
 ```
 
 ## 4) GitHub Actions CI/CD setup
@@ -78,12 +78,12 @@ Set in `Settings > Secrets and variables > Actions`:
 3. It ensures folder `/opt/rtm-class/rtm-class-frontend` exists.
 4. It pulls latest code.
 5. It runs:
-   - `docker compose -f docker-compose.prod.yml up -d --build`
+   - `docker compose -p rtm-class-frontend -f docker-compose.prod.yml up -d --build`
 
 ## 6) Useful commands in VM
 ```bash
-docker compose -f docker-compose.prod.yml logs -f
-docker compose -f docker-compose.prod.yml restart
-docker compose -f docker-compose.prod.yml down
+docker compose -p rtm-class-frontend -f docker-compose.prod.yml logs -f
+docker compose -p rtm-class-frontend -f docker-compose.prod.yml restart
+docker compose -p rtm-class-frontend -f docker-compose.prod.yml down
 docker system df
 ```

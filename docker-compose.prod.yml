@@ -1,6 +1,5 @@
 services:
   frontend:
-    container_name: rtm-class-frontend
     build:
       context: .
       target: runner

@@ -82,8 +82,7 @@ export function AdminClassesGrid() {
   const searchKeyword = search.trim();
   const sortByParam = sortBy === "all" ? undefined : sortBy;
   const sortOrderParam = sortByParam && sortOrder !== "all" ? sortOrder : undefined;
-
-  // Fetch Classes
+    
   const {
     data: listResponse,
     isLoading,
@@ -100,7 +99,7 @@ export function AdminClassesGrid() {
         sortOrder: sortOrderParam,
       },
     ],
-    endpoint: "/classes", // Adjust if your hook automatically adds /api/v1
+    endpoint: "/classes",  
     extractData: false,
     params: {
       page,

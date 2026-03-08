@@ -1,6 +1,6 @@
 import { ClassDetailResponse } from "@/components/dashboard/classes/class-types";
 
-const DUMMY_CLASSES: ClassDetailResponse[] = [
+export const DUMMY_CLASSES: ClassDetailResponse[] = [
   {
     id: "1",
     name: "Mathematics 101",

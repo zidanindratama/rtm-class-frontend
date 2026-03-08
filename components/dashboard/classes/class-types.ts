@@ -23,3 +23,11 @@ export type ClassDetailResponse = {
 
 export type SortByOption = "all" | "createdAt" | "name" | "classCode";
 export type SortOrderOption = "all" | "asc" | "desc";
+
+export type CreateClassPayload = {
+  name: string;
+  institutionName?: string;
+  classLevel?: string;
+  academicYear?: string;
+  description?: string;
+};

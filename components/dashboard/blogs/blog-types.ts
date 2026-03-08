@@ -24,4 +24,8 @@ export type CreateBlogPayload = {
   isPublished?: boolean;
 };
 
+export type SortByOption = "all" | "createdAt" | "publishedAt" | "title";
+export type SortOrderOption = "all" | "asc" | "desc";
+export type PublishedFilterOption = "all" | "true" | "false";
+
 export type UpdateBlogPayload = Partial<CreateBlogPayload>;

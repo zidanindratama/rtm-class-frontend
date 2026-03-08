@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft } from "lucide-react";
-import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useGetData } from "@/hooks/use-get-data";
@@ -45,6 +44,7 @@ import {
 import { MinimalTiptapEditor } from "@/components/ui/minimal-tiptap";
 import { cn } from "@/lib/utils";
 import { UploadResponseData, useUploadFile } from "@/hooks/use-upload-file";
+import { EditBlogForm } from "./edit-blog-form";
 
 export const createBlogSchema = z.object({
   title: z.string().min(1, "Title is required."),
@@ -57,11 +57,11 @@ export const editBlogSchema = z.object({
   title: z.string().optional(),
   content: z.string().optional(),
   excerpt: z.string().optional(),
-  isPublished: z.boolean().optional(),
+  isPublished: z.boolean(),
 });
 
 type CreateBlogValues = z.infer<typeof createBlogSchema>;
-type EditBlogValues = z.infer<typeof editBlogSchema>;
+export type EditBlogValues = z.infer<typeof editBlogSchema>;
 
 type BlogFormPageProps =
   | { mode: "create"; blogId?: never }
@@ -70,6 +70,29 @@ type BlogFormPageProps =
 export function BlogFormPage({ mode, blogId }: BlogFormPageProps) {
   const router = useRouter();
   const isEditMode = mode === "edit";
+
+  const {
+    data: detailResponse,
+    isLoading: isLoadingBlog,
+    isError: isDetailError,
+  } = useGetData<APISingleResponse<BlogDetailResponse>>({
+    key: ["admin", "blogs", "detail", blogId],
+    endpoint: `/admin/blogs/${blogId}`,
+    extractData: false,
+    enabled: isEditMode && Boolean(blogId),
+    errorMessage: "Failed to load blog detail.",
+  });
+
+  const createForm = useForm<CreateBlogValues>({
+    resolver: zodResolver(createBlogSchema),
+    defaultValues: {
+      title: "",
+      content: "",
+      excerpt: "",
+      isPublished: false,
+    },
+  });
+
   const uploadMutation = useUploadFile<UploadResponseData>({
     endpoint: "/uploads",
     fileFieldName: "file",
@@ -86,55 +109,6 @@ export function BlogFormPage({ mode, blogId }: BlogFormPageProps) {
     return result.url;
   };
 
-  const createForm = useForm<CreateBlogValues>({
-    resolver: zodResolver(createBlogSchema),
-    defaultValues: {
-      title: "",
-      content: "",
-      excerpt: "",
-      isPublished: false,
-    },
-  });
-
-  const editForm = useForm<EditBlogValues>({
-    resolver: zodResolver(editBlogSchema),
-    defaultValues: {
-      title: "",
-      content: "",
-      excerpt: "",
-      isPublished: false,
-    },
-  });
-
-  const {
-    data: detailResponse,
-    isLoading: isLoadingBlog,
-    isError: isDetailError,
-  } = useGetData<APISingleResponse<BlogDetailResponse>>({
-    key: ["admin", "blogs", "detail", blogId],
-    endpoint: `/admin/blogs/${blogId}`,
-    extractData: false,
-    enabled: isEditMode && Boolean(blogId),
-    errorMessage: "Failed to load blog detail.",
-  });
-
-  useEffect(() => {
-    if (!isEditMode) {
-      return;
-    }
-
-    if (!detailResponse?.data) {
-      return;
-    }
-
-    editForm.reset({
-      title: detailResponse.data.title ?? "",
-      content: detailResponse.data.content ?? "",
-      excerpt: detailResponse.data.excerpt ?? "",
-      isPublished: detailResponse.data.isPublished ?? false,
-    });
-  }, [detailResponse?.data, editForm, isEditMode]);
-
   const createBlogMutation = usePostData<unknown, CreateBlogPayload>({
     key: ["admin", "blogs", "create"],
     endpoint: "/admin/blogs",
@@ -148,7 +122,7 @@ export function BlogFormPage({ mode, blogId }: BlogFormPageProps) {
 
   const updateBlogMutation = usePatchData<unknown, UpdateBlogPayload>({
     key: ["admin", "blogs", "update", blogId],
-    endpoint: (blogId) => `/admin/blogs/${detailResponse?.data.id}`,
+    endpoint: `/admin/blogs/${blogId}`,
     successMessage: "Blog updated successfully.",
     errorMessage: "Failed to update blog.",
     invalidateKeys: [
@@ -219,124 +193,13 @@ export function BlogFormPage({ mode, blogId }: BlogFormPageProps) {
                 Unable to load Blog detail.
               </p>
             ) : isEditMode ? (
-              <Form {...editForm}>
-                <form
-                  onSubmit={editForm.handleSubmit(handleEdit)}
-                  className="flex flex-col gap-4"
-                >
-                  <FormField
-                    control={editForm.control}
-                    name="title"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Title</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="Enter blog title"
-                            {...field}
-                            value={field.value ?? ""}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={editForm.control}
-                    name="excerpt"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Excerpt</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="Enter blog excerpt"
-                            {...field}
-                            value={field.value ?? ""}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={editForm.control}
-                    name="isPublished"
-                    render={({ field }) => (
-                      <FormItem className="md:col-span-2">
-                        <FormLabel>Status</FormLabel>
-                        <Select
-                          onValueChange={(value) =>
-                            field.onChange(value === "true")
-                          }
-                          value={field.value === true ? "true" : "false"}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select status" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="false">Draft</SelectItem>
-                            <SelectItem value="true">Published</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={editForm.control}
-                    name="content"
-                    render={({ field }) => (
-                      <FormItem className="lg:col-span-2">
-                        <FormLabel>Konten</FormLabel>{" "}
-                        <FormDescription>
-                          Lorem ipsum dolor sit amet consectetur, adipisicing
-                          elit. Itaque eius quisquam quidem!
-                        </FormDescription>
-                        <FormControl>
-                          <MinimalTiptapEditor
-                            {...field}
-                            value={field.value ?? ""}
-                            throttleDelay={0}
-                            className={cn("w-full min-h-150", {
-                              "border-destructive focus-within:border-destructive":
-                                createForm.formState.errors.content?.message,
-                            })}
-                            editorContentClassName="some-class"
-                            editorClassName="focus:outline-hidden p-5"
-                            placeholder="Write something..."
-                            autofocus
-                            uploader={handleEditorUpload}
-                            editable
-                            injectCSS
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="flex justify-end gap-2 md:col-span-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => router.push("/dashboard/blogs")}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="submit"
-                      disabled={updateBlogMutation.isPending}
-                    >
-                      {updateBlogMutation.isPending ? "Saving..." : "Save"}
-                    </Button>
-                  </div>
-                </form>
-              </Form>
+              <EditBlogForm
+                data={detailResponse?.data ?? ({} as BlogDetailResponse)}
+                isPending={updateBlogMutation.isPending}
+                onSubmit={handleEdit}
+                onCancel={() => router.push("/dashboard/blogs")}
+                handleEditorUpload={handleEditorUpload}
+              />
             ) : (
               <Form {...createForm}>
                 <form

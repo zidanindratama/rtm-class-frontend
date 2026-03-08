@@ -36,16 +36,22 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useGetData } from "@/hooks/use-get-data";
 import { APIListResponse } from "@/types/api-response";
-import { BlogDetailResponse } from "./blog-types";
-import { useDeleteData } from "@/hooks/use-delete-data"; 
+import {
+  BlogDetailResponse,
+  PublishedFilterOption,
+  SortByOption,
+  SortOrderOption,
+} from "./blog-types";
+import { useDeleteData } from "@/hooks/use-delete-data";
 import { DeleteDialog } from "@/components/globals/dialog/delete-dialog";
+import {
+  PUBLISHED_FILTER_LABELS,
+  SORT_BY_LABELS,
+  SORT_ORDER_LABELS,
+} from "./blog-constants";
 
 const DEFAULT_PAGE_SIZE = 6;
 const PAGE_SIZE_OPTIONS = [6, 12, 24];
-
-type SortByOption = "all" | "createdAt" | "publishedAt" | "title";
-type SortOrderOption = "all" | "asc" | "desc";
-type PublishedFilterOption = "all" | "true" | "false";
 
 function getPrimaryBlogDate(
   isoPublishedAt: string | null,
@@ -62,6 +68,15 @@ function formatDateLabel(iso: string | null) {
 
   return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(date);
 }
+
+const statusOptions: PublishedFilterOption[] = ["all", "true", "false"];
+const sortByOptions: SortByOption[] = [
+  "all",
+  "createdAt",
+  "publishedAt",
+  "title",
+];
+const sortOrderOptions: SortOrderOption[] = ["all", "asc", "desc"];
 
 export function AdminBlogsGrid() {
   const smoothEase = [0.16, 1, 0.3, 1] as const;
@@ -130,7 +145,6 @@ export function AdminBlogsGrid() {
     invalidateKeys: [["admin", "blogs"]],
   });
 
-  const statusOptions: PublishedFilterOption[] = ["all", "true", "false"];
   const blogs = listResponse?.data ?? [];
   const totalCount = listResponse?.meta?.total_items ?? blogs.length;
   const currentPage = listResponse?.meta?.current_page ?? page;
@@ -236,12 +250,11 @@ export function AdminBlogsGrid() {
                 <SelectContent>
                   {statusOptions.map((status) => (
                     <SelectItem key={status} value={status}>
-                      {status === "all" ? "All status" : status}
+                      {PUBLISHED_FILTER_LABELS[status]}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-
               <Select
                 value={sortBy}
                 onValueChange={(value) => onSortByChange(value as SortByOption)}
@@ -250,10 +263,11 @@ export function AdminBlogsGrid() {
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All sort by</SelectItem>
-                  <SelectItem value="createdAt">createdAt</SelectItem>
-                  <SelectItem value="publishedAt">publishedAt</SelectItem>
-                  <SelectItem value="title">title</SelectItem>
+                  {sortByOptions.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {SORT_BY_LABELS[option]}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 
@@ -267,9 +281,11 @@ export function AdminBlogsGrid() {
                   <SelectValue placeholder="Sort order" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All order</SelectItem>
-                  <SelectItem value="asc">asc</SelectItem>
-                  <SelectItem value="desc">desc</SelectItem>
+                  {sortOrderOptions.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {SORT_ORDER_LABELS[option]}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -457,7 +473,6 @@ export function AdminBlogsGrid() {
           deleteBlogMutation.mutate({ id: blogId });
         }}
       />
-   
     </section>
   );
 }

@@ -183,9 +183,10 @@ export function ForumThreadDetailPage({
 
   const thread = threadResponse?.data;
   const currentUserId = meData?.user.id;
-  const canManageThread =
-    Boolean(thread) &&
-    (role === "ADMIN" || (currentUserId && currentUserId === thread.authorId));
+  const canManageThread = Boolean(
+    thread &&
+      (role === "ADMIN" || (currentUserId && currentUserId === thread.authorId)),
+  );
 
   return (
     <section className="space-y-6">

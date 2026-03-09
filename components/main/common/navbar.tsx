@@ -1,18 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Menu, X } from "lucide-react";
 import { ThemeToggle } from "./theme-toggle";
 import { Button } from "@/components/ui/button";
 import { mainRoutes } from "@/routes/main-routes";
+import { authTokenStorage } from "@/lib/axios-instance";
+import { LoggedProfile } from "@/components/globals/profile/logged-profile";
 
 export function Navbar() {
   const smoothEase = [0.16, 1, 0.3, 1] as const;
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    setIsLoggedIn(Boolean(authTokenStorage.getAccessToken()));
+  }, []);
 
   return (
     <>
@@ -58,15 +65,21 @@ export function Navbar() {
 
           <div className="flex items-center gap-2 md:gap-3">
             <ThemeToggle />
-            <Button
-              asChild
-              className="hidden md:inline-flex rounded-full px-6 font-semibold shadow-lg shadow-primary/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-primary/40"
-            >
-              <Link href="/auth/sign-up">
-                Get Started
-                <ArrowRight className="ml-1.5 h-4 w-4" />
-              </Link>
-            </Button>
+            {isLoggedIn ? (
+              <div className="hidden md:block">
+                <LoggedProfile />
+              </div>
+            ) : (
+              <Button
+                asChild
+                className="hidden md:inline-flex rounded-full px-6 font-semibold shadow-lg shadow-primary/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-primary/40"
+              >
+                <Link href="/auth/sign-up">
+                  Get Started
+                  <ArrowRight className="ml-1.5 h-4 w-4" />
+                </Link>
+              </Button>
+            )}
             <Button
               type="button"
               variant="ghost"
@@ -148,12 +161,21 @@ export function Navbar() {
                 })}
                 </div>
 
-                <Button asChild className="mt-auto h-14 w-full rounded-2xl text-base font-semibold">
-                  <Link href="/auth/sign-up" onClick={() => setIsMenuOpen(false)}>
-                    Get Started
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
+                {isLoggedIn ? (
+                  <Button asChild className="mt-auto h-14 w-full rounded-2xl text-base font-semibold">
+                    <Link href="/dashboard/profile" onClick={() => setIsMenuOpen(false)}>
+                      LoggedProfile
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                ) : (
+                  <Button asChild className="mt-auto h-14 w-full rounded-2xl text-base font-semibold">
+                    <Link href="/auth/sign-up" onClick={() => setIsMenuOpen(false)}>
+                      Get Started
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                )}
               </div>
           </motion.div>
         )}

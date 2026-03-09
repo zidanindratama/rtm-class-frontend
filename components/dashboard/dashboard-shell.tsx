@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { type ComponentType, useMemo, useState } from "react";
-import { toast } from "sonner";
 import {
   CircleHelp,
   ChevronDown,
@@ -13,26 +12,16 @@ import {
   FileText,
   LayoutDashboard,
   LifeBuoy,
-  LogOut,
   MessageSquare,
   Users,
   UserRound,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/main/common/theme-toggle";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Sidebar,
   SidebarContent,
@@ -45,13 +34,13 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { authTokenStorage } from "@/lib/axios-instance";
 import {
   dashboardNavByRole,
   type DashboardItem,
   type DashboardRole,
 } from "@/routes/dashboard-routes";
 import { cn } from "@/lib/utils";
+import { LoggedProfile } from "../globals/profile/logged-profile";
 
 const iconByKey: Record<
   DashboardItem["iconKey"],
@@ -72,17 +61,11 @@ type DashboardShellProps = {
 
 export function DashboardShell({ children, role }: DashboardShellProps) {
   const pathname = usePathname();
-  const router = useRouter();
+
   const items = useMemo(() => dashboardNavByRole[role], [role]);
   const [menuOverrides, setMenuOverrides] = useState<Record<string, boolean>>(
     {},
   );
-
-  const handleLogout = () => {
-    authTokenStorage.clearAuthTokens();
-    toast.success("Signed out successfully.");
-    router.push("/auth/sign-in");
-  };
 
   const normalizePath = (path: string) =>
     path.length > 1 && path.endsWith("/") ? path.slice(0, -1) : path;
@@ -276,34 +259,7 @@ export function DashboardShell({ children, role }: DashboardShellProps) {
 
           <div className="flex items-center gap-1.5 md:gap-2">
             <ThemeToggle />
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="h-9 rounded-full px-1.5 md:px-2"
-                >
-                  <Avatar size="sm">
-                    <AvatarFallback>{role.slice(0, 2)}</AvatarFallback>
-                  </Avatar>
-                  <span className="ml-2 hidden text-sm md:inline">{role}</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem asChild>
-                  <Link href="/dashboard/profile">
-                    <UserRound className="h-4 w-4" />
-                    Profile
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem variant="destructive" onClick={handleLogout}>
-                  <span className="flex items-center gap-2">
-                    <LogOut className="h-4 w-4" />
-                    Logout
-                  </span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <LoggedProfile/>
           </div>
         </header>
 

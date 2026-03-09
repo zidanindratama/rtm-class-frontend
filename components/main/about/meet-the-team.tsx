@@ -11,7 +11,7 @@ const team = [
     desc: "Architect behind RTM Class Application integration and asynchronous infrastructure.",
     image: "/about-us/zidan.png",
     github: "https://github.com/zidanindratama",
-    linkedin: "https://linkedin.com/in/zidanindratama",
+    linkedin: "https://linkedin.com/in/zidan-indratama",
   },
   {
     name: "Nur Bintang Hidayat",

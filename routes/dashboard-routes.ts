@@ -79,7 +79,6 @@ export const dashboardNavByRole: Record<DashboardRole, DashboardItem[]> = {
       children: [
         { label: "My Class", href: "/dashboard/my-class" },
         { label: "Create Class", href: "/dashboard/classes/create" },
-        { label: "Join Class", href: "/dashboard/classes/join" },
       ],
     },
     {
@@ -137,7 +136,7 @@ const dashboardAccessPolicies: DashboardAccessPolicy[] = [
 
   { prefix: "/dashboard/classes", allowedRoles: ["ADMIN", "TEACHER"] },
   { prefix: "/dashboard/classes/create", allowedRoles: ["ADMIN", "TEACHER"] },
-  { prefix: "/dashboard/classes/join", allowedRoles: ["TEACHER", "STUDENT"] },
+  { prefix: "/dashboard/classes/join", allowedRoles: ["STUDENT"] },
 
   { prefix: "/dashboard/my-class", allowedRoles: ["TEACHER", "STUDENT"] },
   { prefix: "/dashboard/forums", allowedRoles: ["ADMIN"] },

@@ -37,14 +37,48 @@ import { Spinner } from "@/components/ui/spinner";
 import { type APISingleResponse } from "@/types/api-response";
 import { CreateClassPayload, type ClassDetailResponse } from "./class-types";
 import { EditClassForm } from "./edit-class-form";
-import { ACADEMIC_YEARS, CLASS_LEVELS } from "./class-constants";
+import { CLASS_LEVELS } from "./class-constants";
 
-// ─── Zod Schema ────────────────────────────────────────────────────────────
+const ACADEMIC_YEAR_REGEX = /^\d{4}\/\d{4}$/;
+const ACADEMIC_YEAR_RANGE_SEPARATOR = "/";
+
+function formatAcademicYearInput(rawValue: string) {
+  const digits = rawValue.replace(/\D/g, "").slice(0, 8);
+
+  if (digits.length <= 4) {
+    return digits;
+  }
+
+  return `${digits.slice(0, 4)}/${digits.slice(4)}`;
+}
+
+function isValidAcademicYear(value: string) {
+  if (!ACADEMIC_YEAR_REGEX.test(value)) {
+    return false;
+  }
+
+  const [startYearRaw, endYearRaw] = value.split(ACADEMIC_YEAR_RANGE_SEPARATOR);
+  const startYear = Number(startYearRaw);
+  const endYear = Number(endYearRaw);
+
+  if (Number.isNaN(startYear) || Number.isNaN(endYear)) {
+    return false;
+  }
+
+  return endYear === startYear + 1;
+}
+
 export const classFormSchema = z.object({
   name: z.string().min(1, "Class name is required."),
   institutionName: z.string().optional(),
   classLevel: z.string().optional(),
-  academicYear: z.string().optional(),
+  academicYear: z
+    .string()
+    .optional()
+    .refine((value) => !value || isValidAcademicYear(value), {
+      message:
+        "Academic year must use YYYY/YYYY format and be sequential (e.g., 2025/2026).",
+    }),
   description: z.string().optional(),
 });
 
@@ -58,7 +92,6 @@ export function ClassFormPage({ mode, classId }: ClassFormPageProps) {
   const router = useRouter();
   const isEditMode = mode === "edit";
 
-  // GET class detail (edit mode)
   const {
     data: detailResponse,
     isLoading: isLoadingClass,
@@ -71,7 +104,6 @@ export function ClassFormPage({ mode, classId }: ClassFormPageProps) {
     errorMessage: "Failed to load class detail.",
   });
 
-  // POST create class
   const createClassMutation = usePostData<unknown, CreateClassPayload>({
     key: ["admin", "classes", "create"],
     endpoint: "/classes",
@@ -83,7 +115,6 @@ export function ClassFormPage({ mode, classId }: ClassFormPageProps) {
     },
   });
 
-  // Form (create mode)
   const createForm = useForm<ClassFormValues>({
     resolver: zodResolver(classFormSchema),
     defaultValues: {
@@ -98,10 +129,10 @@ export function ClassFormPage({ mode, classId }: ClassFormPageProps) {
   const handleCreate = (values: ClassFormValues) => {
     createClassMutation.mutate({
       name: values.name,
-      institutionName: values.institutionName,
-      classLevel: values.classLevel,
-      academicYear: values.academicYear,
-      description: values.description,
+      institutionName: values.institutionName || undefined,
+      classLevel: values.classLevel || undefined,
+      academicYear: values.academicYear || undefined,
+      description: values.description || undefined,
     });
   };
 
@@ -114,61 +145,92 @@ export function ClassFormPage({ mode, classId }: ClassFormPageProps) {
             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Class list
+            Back to class list
           </Link>
-          <h1 className="text-2xl mt-3 font-semibold tracking-tight">
+          <h1 className="mt-3 text-2xl font-semibold tracking-tight">
             {isEditMode ? "View / Edit Class" : "Create Class"}
           </h1>
           <p className="text-sm text-muted-foreground">
             {isEditMode
-              ? "View class details (Updating is coming soon)."
+              ? "View class details and update class information."
               : "Create a new class for your institution."}
           </p>
         </div>
       </div>
 
-      <div className="grid gap-6">
-        <Card>
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Class Information</CardTitle>
             <CardDescription>
-              Fill out the details below. Only the class name is strictly
-              required.
+              Fill out the details below. Only the class name is required.
             </CardDescription>
           </CardHeader>
           <CardContent>
             {isEditMode && isLoadingClass ? (
               <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
                 <Spinner />
-                Loading Class detail...
+                Loading class detail...
               </div>
             ) : isEditMode && isDetailError ? (
               <p className="text-sm text-muted-foreground">
-                Unable to load Class detail.
+                Unable to load class detail.
               </p>
             ) : isEditMode && detailResponse ? (
               <EditClassForm
+                classId={detailResponse.data.id}
                 data={detailResponse.data}
                 onCancel={() => router.push("/dashboard/classes")}
               />
             ) : (
-              // ── CREATE MODE ──────────────────────────────────────────────
               <Form {...createForm}>
                 <form
                   onSubmit={createForm.handleSubmit(handleCreate)}
-                  className="flex flex-col gap-4"
+                  className="grid gap-5 md:grid-cols-2"
                 >
-                  {/* Class Name */}
                   <FormField
                     control={createForm.control}
                     name="name"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="md:col-span-2">
                         <FormLabel>Class Name *</FormLabel>
                         <FormControl>
+                          <Input placeholder="Enter class name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={createForm.control}
+                    name="institutionName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Institution Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter institution name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={createForm.control}
+                    name="academicYear"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Academic Year</FormLabel>
+                        <FormControl>
                           <Input
-                            placeholder="e.g., Mathematics 10-A"
-                            {...field}
+                            placeholder="Enter academic year (YYYY/YYYY)"
+                            value={field.value ?? ""}
+                            onChange={(event) => {
+                              field.onChange(
+                                formatAcademicYearInput(event.target.value),
+                              );
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
@@ -176,68 +238,15 @@ export function ClassFormPage({ mode, classId }: ClassFormPageProps) {
                     )}
                   />
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Institution Name */}
-                    <FormField
-                      control={createForm.control}
-                      name="institutionName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Institution Name</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="e.g., SMA Negeri 1"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {/* Academic Year — Select */}
-                    <FormField
-                      control={createForm.control}
-                      name="academicYear"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Academic Year</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            value={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select academic year" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {ACADEMIC_YEARS.map((year) => (
-                                <SelectItem key={year} value={year}>
-                                  {year}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  {/* Class Level — Select */}
                   <FormField
                     control={createForm.control}
                     name="classLevel"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="md:col-span-2">
                         <FormLabel>Class Level</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value}
-                        >
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className="w-full">
                               <SelectValue placeholder="Select class level" />
                             </SelectTrigger>
                           </FormControl>
@@ -254,17 +263,16 @@ export function ClassFormPage({ mode, classId }: ClassFormPageProps) {
                     )}
                   />
 
-                  {/* Description */}
                   <FormField
                     control={createForm.control}
                     name="description"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="md:col-span-2">
                         <FormLabel>Description</FormLabel>
                         <FormControl>
                           <Textarea
-                            placeholder="Enter a brief description of the class..."
-                            className="resize-none min-h-[120px]"
+                            placeholder="Enter class description"
+                            className="min-h-[140px] resize-none"
                             {...field}
                           />
                         </FormControl>
@@ -273,7 +281,7 @@ export function ClassFormPage({ mode, classId }: ClassFormPageProps) {
                     )}
                   />
 
-                  <div className="flex justify-end gap-2 mt-4">
+                  <div className="flex justify-end gap-2 border-t pt-5 md:col-span-2">
                     <Button
                       type="button"
                       variant="outline"
@@ -281,18 +289,25 @@ export function ClassFormPage({ mode, classId }: ClassFormPageProps) {
                     >
                       Cancel
                     </Button>
-                    <Button
-                      type="submit"
-                      disabled={createClassMutation.isPending}
-                    >
-                      {createClassMutation.isPending
-                        ? "Creating..."
-                        : "Create Class"}
+                    <Button type="submit" disabled={createClassMutation.isPending}>
+                      {createClassMutation.isPending ? "Creating..." : "Create Class"}
                     </Button>
                   </div>
                 </form>
               </Form>
             )}
+          </CardContent>
+        </Card>
+
+        <Card className="h-fit">
+          <CardHeader>
+            <CardTitle>Notes</CardTitle>
+            <CardDescription>Guidelines for class setup.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm text-muted-foreground">
+            <p>- Keep class names clear and easy to identify.</p>
+            <p>- Use academic year format YYYY/YYYY.</p>
+            <p>- Add a short description to explain class context.</p>
           </CardContent>
         </Card>
       </div>

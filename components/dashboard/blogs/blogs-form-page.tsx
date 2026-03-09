@@ -161,20 +161,20 @@ export function BlogFormPage({ mode, blogId }: BlogFormPageProps) {
             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Blog list
+            Back to blog list
           </Link>
-          <h1 className="text-2xl mt-3 font-semibold tracking-tight">
+          <h1 className="mt-3 text-2xl font-semibold tracking-tight">
             {isEditMode ? "Edit Blog" : "Create Blog"}
           </h1>
           <p className="text-sm text-muted-foreground">
             {isEditMode
-              ? "Update Blog account details and access status."
-              : "Create a new Blog account with secure credentials."}
+              ? "Update blog content and publishing status."
+              : "Create a new blog post for your audience."}
           </p>
         </div>
       </div>
 
-      <div className="grid gap-6 ">
+      <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Blog Information</CardTitle>
@@ -186,11 +186,11 @@ export function BlogFormPage({ mode, blogId }: BlogFormPageProps) {
             {isEditMode && isLoadingBlog ? (
               <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
                 <Spinner />
-                Loading Blog detail...
+                Loading blog detail...
               </div>
             ) : isEditMode && isDetailError ? (
               <p className="text-sm text-muted-foreground">
-                Unable to load Blog detail.
+                Unable to load blog detail.
               </p>
             ) : isEditMode ? (
               <EditBlogForm
@@ -204,17 +204,17 @@ export function BlogFormPage({ mode, blogId }: BlogFormPageProps) {
               <Form {...createForm}>
                 <form
                   onSubmit={createForm.handleSubmit(handleCreate)}
-                  className="flex flex-col gap-4"
+                  className="grid gap-5 md:grid-cols-2"
                 >
                   <FormField
                     control={createForm.control}
                     name="title"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="md:col-span-2">
                         <FormLabel>Title</FormLabel>
                         <FormControl>
                           <Input
-                            placeholder="Enter blog title"
+                            placeholder="Enter title"
                             {...field}
                             value={field.value ?? ""}
                           />
@@ -228,11 +228,11 @@ export function BlogFormPage({ mode, blogId }: BlogFormPageProps) {
                     control={createForm.control}
                     name="excerpt"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="md:col-span-2">
                         <FormLabel>Excerpt</FormLabel>
                         <FormControl>
                           <Input
-                            placeholder="Enter blog excerpt"
+                            placeholder="Enter excerpt"
                             {...field}
                             value={field.value ?? ""}
                           />
@@ -249,9 +249,7 @@ export function BlogFormPage({ mode, blogId }: BlogFormPageProps) {
                       <FormItem className="md:col-span-2">
                         <FormLabel>Status</FormLabel>
                         <Select
-                          onValueChange={(value) =>
-                            field.onChange(value === "true")
-                          }
+                          onValueChange={(value) => field.onChange(value === "true")}
                           value={field.value === true ? "true" : "false"}
                         >
                           <FormControl>
@@ -273,11 +271,10 @@ export function BlogFormPage({ mode, blogId }: BlogFormPageProps) {
                     control={createForm.control}
                     name="content"
                     render={({ field }) => (
-                      <FormItem className="lg:col-span-2">
-                        <FormLabel>Konten</FormLabel>{" "}
+                      <FormItem className="md:col-span-2">
+                        <FormLabel>Content</FormLabel>
                         <FormDescription>
-                          Lorem ipsum dolor sit amet consectetur, adipisicing
-                          elit. Itaque eius quisquam quidem!
+                          Write the main article content. You can format text and upload images.
                         </FormDescription>
                         <FormControl>
                           <MinimalTiptapEditor
@@ -290,7 +287,7 @@ export function BlogFormPage({ mode, blogId }: BlogFormPageProps) {
                             })}
                             editorContentClassName="some-class"
                             editorClassName="focus:outline-hidden p-5"
-                            placeholder="Write something..."
+                            placeholder="Write blog content..."
                             autofocus
                             editable
                             uploader={handleEditorUpload}
@@ -302,7 +299,7 @@ export function BlogFormPage({ mode, blogId }: BlogFormPageProps) {
                     )}
                   />
 
-                  <div className="flex justify-end gap-2 md:col-span-2">
+                  <div className="flex justify-end gap-2 border-t pt-5 md:col-span-2">
                     <Button
                       type="button"
                       variant="outline"
@@ -310,16 +307,25 @@ export function BlogFormPage({ mode, blogId }: BlogFormPageProps) {
                     >
                       Cancel
                     </Button>
-                    <Button
-                      type="submit"
-                      disabled={createBlogMutation.isPending}
-                    >
+                    <Button type="submit" disabled={createBlogMutation.isPending}>
                       {createBlogMutation.isPending ? "Saving..." : "Save"}
                     </Button>
                   </div>
                 </form>
               </Form>
             )}
+          </CardContent>
+        </Card>
+
+        <Card className="h-fit">
+          <CardHeader>
+            <CardTitle>Notes</CardTitle>
+            <CardDescription>Guidelines for blog publishing.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm text-muted-foreground">
+            <p>- Use a concise title and a clear excerpt.</p>
+            <p>- Keep content structure readable with headings.</p>
+            <p>- Set status to draft before final review.</p>
           </CardContent>
         </Card>
       </div>

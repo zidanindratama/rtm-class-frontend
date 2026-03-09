@@ -50,22 +50,15 @@ export function EditBlogForm({
 
   return (
     <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(onSubmit)}
-        className="flex flex-col gap-4"
-      >
+      <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-5 md:grid-cols-2">
         <FormField
           control={form.control}
           name="title"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="md:col-span-2">
               <FormLabel>Title</FormLabel>
               <FormControl>
-                <Input
-                  placeholder="Enter blog title"
-                  {...field}
-                  value={field.value ?? ""}
-                />
+                <Input placeholder="Enter title" {...field} value={field.value ?? ""} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -76,14 +69,10 @@ export function EditBlogForm({
           control={form.control}
           name="excerpt"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="md:col-span-2">
               <FormLabel>Excerpt</FormLabel>
               <FormControl>
-                <Input
-                  placeholder="Enter blog excerpt"
-                  {...field}
-                  value={field.value ?? ""}
-                />
+                <Input placeholder="Enter excerpt" {...field} value={field.value ?? ""} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -119,11 +108,10 @@ export function EditBlogForm({
           control={form.control}
           name="content"
           render={({ field }) => (
-            <FormItem className="lg:col-span-2">
-              <FormLabel>Konten</FormLabel>
+            <FormItem className="md:col-span-2">
+              <FormLabel>Content</FormLabel>
               <FormDescription>
-                Lorem ipsum dolor sit amet consectetur, adipisicing elit.
-                Itaque eius quisquam quidem!
+                Update the article content. You can format text and upload images.
               </FormDescription>
               <FormControl>
                 <MinimalTiptapEditor
@@ -136,7 +124,7 @@ export function EditBlogForm({
                   })}
                   editorContentClassName="some-class"
                   editorClassName="focus:outline-hidden p-5"
-                  placeholder="Write something..."
+                  placeholder="Write blog content..."
                   autofocus
                   uploader={handleEditorUpload}
                   editable
@@ -148,7 +136,7 @@ export function EditBlogForm({
           )}
         />
 
-        <div className="flex justify-end gap-2 md:col-span-2">
+        <div className="flex justify-end gap-2 border-t pt-5 md:col-span-2">
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
           </Button>

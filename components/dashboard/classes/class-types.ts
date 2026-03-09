@@ -31,3 +31,16 @@ export type CreateClassPayload = {
   academicYear?: string;
   description?: string;
 };
+
+export type ClassMemberResponse = {
+  id: string;
+  role: "TEACHER" | "STUDENT";
+  createdAt: string;
+  user: {
+    id: string;
+    fullName: string;
+    email: string;
+    role: "ADMIN" | "TEACHER" | "STUDENT";
+    isSuspended: boolean;
+  };
+};

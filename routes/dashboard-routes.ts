@@ -53,6 +53,10 @@ export const dashboardNavByRole: Record<DashboardRole, DashboardItem[]> = {
       label: "Blog CMS",
       href: "/dashboard/blogs",
       iconKey: "blog",
+      children: [
+        { label: "All Blogs", href: "/dashboard/blogs" },
+        { label: "Create Blog", href: "/dashboard/blogs/create" },
+      ],
     },
     {
       key: "profile",

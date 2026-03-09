@@ -8,29 +8,26 @@ const team = [
   {
     name: "Muhamad Zidan Indratama",
     role: "Full-Stack Developer",
-    desc: "Architect behind RTM Class AI integration and asynchronous infrastructure.",
-    image:
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=800&auto=format&fit=crop",
-    github: "#",
-    linkedin: "#",
+    desc: "Architect behind RTM Class Application integration and asynchronous infrastructure.",
+    image: "/about-us/zidan.png",
+    github: "https://github.com/zidanindratama",
+    linkedin: "https://linkedin.com/in/zidanindratama",
   },
   {
-    name: "Team Member 2",
-    role: "AI Engineer",
-    desc: "Focused on prompt engineering and Groq model optimization.",
-    image:
-      "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=800&auto=format&fit=crop",
-    github: "#",
-    linkedin: "#",
+    name: "Nur Bintang Hidayat",
+    role: "Full-Stack Developer",
+    desc: "Planning and implementing the core architecture of RTM Class AI, ensuring seamless integration and scalability.",
+    image: "/about-us/bintang.jpeg",
+    github: "https://github.com/nbintang",
+    linkedin: "https://www.linkedin.com/in/nur-bintang-hidayat",
   },
   {
-    name: "Team Member 2",
+    name: "Adhis Mauliyahsa Ashafaat",
     role: "AI Engineer",
-    desc: "Focused on prompt engineering and Groq model optimization.",
-    image:
-      "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=800&auto=format&fit=crop",
-    github: "#",
-    linkedin: "#",
+    desc: "Planning and implementing the core architecture of RTM Class AI, focused on prompt engineering and Groq model optimization.",
+    image: "/about-us/jawir.jpeg",
+    github: "https://github.com/Ashafaatadhis",
+    linkedin: "https://www.linkedin.com/in/adhis-mauliyahsa-ashafaat-2446781bb",
   },
 ];
 

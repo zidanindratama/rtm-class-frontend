@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
+  ClipboardCheck,
   Copy,
   CalendarDays,
   LogOut,
@@ -42,6 +43,8 @@ type ClassDetailPageProps = {
   membersHref?: string;
   showForumButton?: boolean;
   forumsHref?: string;
+  showAssignmentsButton?: boolean;
+  assignmentsHref?: string;
 };
 
 function formatDateLabel(iso: string) {
@@ -63,6 +66,8 @@ export function ClassDetailPage({
   membersHref,
   showForumButton = false,
   forumsHref,
+  showAssignmentsButton = false,
+  assignmentsHref,
 }: ClassDetailPageProps) {
   const router = useRouter();
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
@@ -125,6 +130,8 @@ export function ClassDetailPage({
   const resolvedMembersHref =
     membersHref ?? `/dashboard/classes/${classId}/members`;
   const resolvedForumsHref = forumsHref ?? `/dashboard/my-class/${classId}/forums`;
+  const resolvedAssignmentsHref =
+    assignmentsHref ?? `/dashboard/my-class/${classId}/assignments`;
 
   const stats = [
     {
@@ -200,7 +207,7 @@ export function ClassDetailPage({
                 Quick Actions
               </p>
 
-              <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 <Link
                   href={resolvedMembersHref}
                   className="group rounded-xl border border-border/70 bg-card/70 p-4 transition-colors hover:border-primary/40"
@@ -227,6 +234,22 @@ export function ClassDetailPage({
                     <p className="mt-3 text-sm font-semibold">Class Forum</p>
                     <p className="mt-1 text-xs text-muted-foreground">
                       Open discussions, threads, and class collaboration.
+                    </p>
+                  </Link>
+                ) : null}
+
+                {showAssignmentsButton ? (
+                  <Link
+                    href={resolvedAssignmentsHref}
+                    className="group rounded-xl border border-border/70 bg-card/70 p-4 transition-colors hover:border-primary/40"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <ClipboardCheck className="h-5 w-5 text-primary" />
+                      <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                    </div>
+                    <p className="mt-3 text-sm font-semibold">Assignments</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Open tasks, submission status, and grading details.
                     </p>
                   </Link>
                 ) : null}

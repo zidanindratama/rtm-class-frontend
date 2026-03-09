@@ -17,6 +17,8 @@ export default async function Page({
       membersHref={`/dashboard/my-class/${id}/members`}
       showForumButton
       forumsHref={`/dashboard/my-class/${id}/forums`}
+      showAssignmentsButton
+      assignmentsHref={`/dashboard/my-class/${id}/assignments`}
     />
   );
 }

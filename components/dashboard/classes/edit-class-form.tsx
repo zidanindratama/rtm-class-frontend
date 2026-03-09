@@ -1,7 +1,6 @@
- 
-import { zodResolver } from "@hookform/resolvers/zod"; 
-import { useForm } from "react-hook-form"; 
-import { Button } from "@/components/ui/button"; 
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -11,16 +10,36 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea"; 
-import { ClassDetailResponse } from "./class-types";
+import { Textarea } from "@/components/ui/textarea";
+import { ClassDetailResponse, CreateClassPayload } from "./class-types";
 import { classFormSchema, ClassFormValues } from "./class-form-page";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ACADEMIC_YEARS, CLASS_LEVELS } from "./class-constants";
-export function EditClassForm({ 
-  data, 
-  onCancel 
-}: { 
-  data: ClassDetailResponse; 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { CLASS_LEVELS } from "./class-constants";
+import { usePatchData } from "@/hooks/use-patch-data";
+
+function formatAcademicYearInput(rawValue: string) {
+  const digits = rawValue.replace(/\D/g, "").slice(0, 8);
+
+  if (digits.length <= 4) {
+    return digits;
+  }
+
+  return `${digits.slice(0, 4)}/${digits.slice(4)}`;
+}
+
+export function EditClassForm({
+  classId,
+  data,
+  onCancel,
+}: {
+  classId: string;
+  data: ClassDetailResponse;
   onCancel: () => void;
 }) {
   const editForm = useForm<ClassFormValues>({
@@ -34,89 +53,90 @@ export function EditClassForm({
     },
   });
 
+  const updateClassMutation = usePatchData<unknown, CreateClassPayload>({
+    key: ["admin", "classes", "update", classId],
+    endpoint: `/classes/${classId}`,
+    successMessage: "Class updated successfully.",
+    errorMessage: "Failed to update class.",
+    invalidateKeys: [
+      ["admin", "classes"],
+      ["admin", "classes", "detail", classId],
+    ],
+  });
+
   const handleEdit = (values: ClassFormValues) => {
-    // Intentionally left empty since the Patch API does not exist yet.
-    console.log("Update payload ready for future API:", values);
+    updateClassMutation.mutate({
+      name: values.name,
+      institutionName: values.institutionName || undefined,
+      classLevel: values.classLevel || undefined,
+      academicYear: values.academicYear || undefined,
+      description: values.description || undefined,
+    });
   };
 
   return (
     <Form {...editForm}>
       <form
         onSubmit={editForm.handleSubmit(handleEdit)}
-        className="flex flex-col gap-4"
+        className="grid gap-5 md:grid-cols-2"
       >
         <FormField
           control={editForm.control}
           name="name"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="md:col-span-2">
               <FormLabel>Class Name *</FormLabel>
               <FormControl>
-                <Input {...field} />
+                <Input placeholder="Enter class name" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
-            control={editForm.control}
-            name="institutionName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Institution Name</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        <FormField
+          control={editForm.control}
+          name="institutionName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Institution Name</FormLabel>
+              <FormControl>
+                <Input placeholder="Enter institution name" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-          {/* Academic Year — Select */}
-          <FormField
-            control={editForm.control}
-            name="academicYear"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Academic Year</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  value={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select academic year" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {ACADEMIC_YEARS.map((year) => (
-                      <SelectItem key={year} value={year}>
-                        {year}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+        <FormField
+          control={editForm.control}
+          name="academicYear"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Academic Year</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="Enter academic year (YYYY/YYYY)"
+                  value={field.value ?? ""}
+                  onChange={(event) => {
+                    field.onChange(formatAcademicYearInput(event.target.value));
+                  }}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-        {/* Class Level — Select */}
         <FormField
           control={editForm.control}
           name="classLevel"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="md:col-span-2">
               <FormLabel>Class Level</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                value={field.value}
-              >
+              <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select class level" />
                   </SelectTrigger>
                 </FormControl>
@@ -133,30 +153,30 @@ export function EditClassForm({
           )}
         />
 
-
         <FormField
           control={editForm.control}
           name="description"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="md:col-span-2">
               <FormLabel>Description</FormLabel>
               <FormControl>
-                <Textarea className="resize-none min-h-[120px]" {...field} />
+                <Textarea
+                  placeholder="Enter class description"
+                  className="min-h-[140px] resize-none"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <div className="flex justify-end gap-2 mt-4 items-center">
-          <span className="text-xs text-muted-foreground mr-auto">
-             * Updating functionality will be available soon.
-          </span>
+        <div className="flex items-center justify-end gap-2 border-t pt-5 md:col-span-2">
           <Button type="button" variant="outline" onClick={onCancel}>
             Back
           </Button>
-          <Button type="submit" disabled>
-            Save Changes
+          <Button type="submit" disabled={updateClassMutation.isPending}>
+            {updateClassMutation.isPending ? "Saving..." : "Save Changes"}
           </Button>
         </div>
       </form>

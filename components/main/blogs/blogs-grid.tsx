@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowUpRight, CalendarDays, Clock3, Search, X } from "lucide-react";
-import { mockBlogs } from "@/lib/mock-blogs";
+import { ArrowUpRight, CalendarDays, Search, X } from "lucide-react";
+import { useGetData } from "@/hooks/use-get-data";
+import { APIListResponse } from "@/types/api-response";
 import {
   Select,
   SelectContent,
@@ -12,104 +13,90 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  PublicBlogPost,
+  PublicBlogSortBy,
+  PublicBlogSortOrder,
+} from "./blog-public-types";
 
 const PAGE_SIZE = 6;
 
-type SortOption = "newest" | "oldest" | "title-asc" | "read-time-asc";
+type SortOption = "newest" | "oldest" | "title-asc";
 
-function extractReadTimeMinutes(readTime: string) {
-  const minutes = Number.parseInt(readTime, 10);
-  return Number.isNaN(minutes) ? 0 : minutes;
+function formatDateLabel(iso: string | null) {
+  if (!iso) return "Not published";
+
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "Invalid date";
+
+  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(date);
+}
+
+function mapSortToApi(sortBy: SortOption): {
+  sortBy: PublicBlogSortBy;
+  sortOrder: PublicBlogSortOrder;
+} {
+  if (sortBy === "oldest") {
+    return { sortBy: "publishedAt", sortOrder: "asc" };
+  }
+
+  if (sortBy === "title-asc") {
+    return { sortBy: "title", sortOrder: "asc" };
+  }
+
+  return { sortBy: "publishedAt", sortOrder: "desc" };
 }
 
 export function BlogsGrid() {
   const smoothEase = [0.16, 1, 0.3, 1] as const;
   const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedTag, setSelectedTag] = useState("all");
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [page, setPage] = useState(1);
 
-  const categories = useMemo(
-    () => [
-      "all",
-      ...new Set(mockBlogs.map((blog) => blog.category).sort((a, b) => a.localeCompare(b))),
+  const searchKeyword = search.trim();
+  const sortConfig = mapSortToApi(sortBy);
+
+  const {
+    data: listResponse,
+    isLoading,
+    isError,
+  } = useGetData<APIListResponse<PublicBlogPost>>({
+    key: [
+      "public",
+      "blogs",
+      {
+        page,
+        perPage: PAGE_SIZE,
+        search: searchKeyword,
+        sortBy: sortConfig.sortBy,
+        sortOrder: sortConfig.sortOrder,
+      },
     ],
-    []
-  );
+    endpoint: "/blogs",
+    extractData: false,
+    params: {
+      page,
+      per_page: PAGE_SIZE,
+      search: searchKeyword || undefined,
+      sort_by: sortConfig.sortBy,
+      sort_order: sortConfig.sortOrder,
+    },
+    errorMessage: "Failed to load blog posts.",
+  });
 
-  const tags = useMemo(
-    () => [
-      "all",
-      ...new Set(mockBlogs.flatMap((blog) => blog.tags).sort((a, b) => a.localeCompare(b))),
-    ],
-    []
-  );
-
-  const filteredAndSortedBlogs = useMemo(() => {
-    const keyword = search.trim().toLowerCase();
-
-    const filtered = mockBlogs.filter((blog) => {
-      const matchesKeyword =
-        keyword.length === 0 ||
-        blog.title.toLowerCase().includes(keyword) ||
-        blog.excerpt.toLowerCase().includes(keyword) ||
-        blog.author.toLowerCase().includes(keyword);
-
-      const matchesCategory =
-        selectedCategory === "all" || blog.category === selectedCategory;
-
-      const matchesTag = selectedTag === "all" || blog.tags.includes(selectedTag);
-
-      return matchesKeyword && matchesCategory && matchesTag;
-    });
-
-    const sorted = [...filtered].sort((a, b) => {
-      if (sortBy === "newest") {
-        return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
-      }
-
-      if (sortBy === "oldest") {
-        return new Date(a.publishedAt).getTime() - new Date(b.publishedAt).getTime();
-      }
-
-      if (sortBy === "title-asc") {
-        return a.title.localeCompare(b.title);
-      }
-
-      return extractReadTimeMinutes(a.readTime) - extractReadTimeMinutes(b.readTime);
-    });
-
-    return sorted;
-  }, [search, selectedCategory, selectedTag, sortBy]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredAndSortedBlogs.length / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages);
-  const startIndex = (safePage - 1) * PAGE_SIZE;
-  const paginatedBlogs = filteredAndSortedBlogs.slice(startIndex, startIndex + PAGE_SIZE);
-
+  const blogs = listResponse?.data ?? [];
+  const totalCount = listResponse?.meta?.total_items ?? 0;
+  const totalPages = Math.max(1, listResponse?.meta?.total_pages ?? 1);
   const pageNumbers = Array.from({ length: totalPages }, (_, index) => index + 1);
 
   const onResetFilters = () => {
     setSearch("");
-    setSelectedCategory("all");
-    setSelectedTag("all");
     setSortBy("newest");
     setPage(1);
   };
 
   const onSearchChange = (value: string) => {
     setSearch(value);
-    setPage(1);
-  };
-
-  const onCategoryChange = (value: string) => {
-    setSelectedCategory(value);
-    setPage(1);
-  };
-
-  const onTagChange = (value: string) => {
-    setSelectedTag(value);
     setPage(1);
   };
 
@@ -141,8 +128,8 @@ export function BlogsGrid() {
           transition={{ duration: 0.55, ease: smoothEase }}
           className="rounded-3xl border border-border/50 bg-card/60 p-5 backdrop-blur-sm md:p-6"
         >
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <label className="relative block">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-[1fr_250px_auto]">
+            <label className="relative block md:col-span-2 lg:col-span-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 value={search}
@@ -152,62 +139,53 @@ export function BlogsGrid() {
               />
             </label>
 
-            <Select value={selectedCategory} onValueChange={onCategoryChange}>
+            <Select value={sortBy} onValueChange={(value) => onSortChange(value as SortOption)}>
               <SelectTrigger className="h-11 w-full rounded-2xl border-border/50 bg-background/70">
-                <SelectValue placeholder="All categories" />
+                <SelectValue placeholder="Sort by" />
               </SelectTrigger>
               <SelectContent>
-                {categories.map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category === "all" ? "All categories" : category}
-                  </SelectItem>
-                ))}
+                <SelectItem value="newest">Newest</SelectItem>
+                <SelectItem value="oldest">Oldest</SelectItem>
+                <SelectItem value="title-asc">Title A-Z</SelectItem>
               </SelectContent>
             </Select>
 
-            <Select value={selectedTag} onValueChange={onTagChange}>
-              <SelectTrigger className="h-11 w-full rounded-2xl border-border/50 bg-background/70">
-                <SelectValue placeholder="All topics" />
-              </SelectTrigger>
-              <SelectContent>
-                {tags.map((tag) => (
-                  <SelectItem key={tag} value={tag}>
-                    {tag === "all" ? "All topics" : tag}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <div className="flex gap-3">
-              <Select value={sortBy} onValueChange={(value) => onSortChange(value as SortOption)}>
-                <SelectTrigger className="h-11 w-full flex-1 rounded-2xl border-border/50 bg-background/70">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="newest">Newest</SelectItem>
-                  <SelectItem value="oldest">Oldest</SelectItem>
-                  <SelectItem value="title-asc">Title A-Z</SelectItem>
-                  <SelectItem value="read-time-asc">Read Time (Short)</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <button
-                type="button"
-                onClick={onResetFilters}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-border/60 px-4 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
-              >
-                <X className="h-4 w-4" />
-                Reset
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={onResetFilters}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-border/60 px-4 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+              Reset
+            </button>
           </div>
 
           <p className="mt-4 text-sm text-muted-foreground">
-            Showing {filteredAndSortedBlogs.length} article{filteredAndSortedBlogs.length === 1 ? "" : "s"}
+            Showing {blogs.length} of {totalCount} article{totalCount === 1 ? "" : "s"}
           </p>
         </motion.div>
 
-        {paginatedBlogs.length === 0 ? (
+        {isLoading ? (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.45, ease: smoothEase }}
+            className="mt-6 rounded-3xl border border-border/45 bg-card/55 p-10 text-center"
+          >
+            <p className="text-sm text-muted-foreground">Loading articles...</p>
+          </motion.div>
+        ) : isError ? (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.45, ease: smoothEase }}
+            className="mt-6 rounded-3xl border border-border/45 bg-card/55 p-10 text-center"
+          >
+            <p className="text-sm text-muted-foreground">Failed to load articles.</p>
+          </motion.div>
+        ) : blogs.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -217,7 +195,7 @@ export function BlogsGrid() {
           >
             <p className="text-xl font-semibold text-foreground">No matching articles found.</p>
             <p className="mt-2 text-sm text-muted-foreground">
-              Try adjusting your search keyword or filter selection.
+              Try adjusting your search keyword.
             </p>
           </motion.div>
         ) : (
@@ -228,7 +206,7 @@ export function BlogsGrid() {
               viewport={{ once: true, margin: "-40px" }}
               className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3"
             >
-              {paginatedBlogs.map((blog, index) => (
+              {blogs.map((blog, index) => (
                 <motion.article
                   custom={index}
                   variants={cardVariants}
@@ -236,30 +214,27 @@ export function BlogsGrid() {
                   className="group flex h-full flex-col rounded-3xl border border-border/50 bg-card/65 p-6 backdrop-blur-sm transition duration-300 hover:-translate-y-1 hover:border-primary/35 hover:shadow-xl hover:shadow-primary/10"
                 >
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-                    {blog.category}
+                    Published Article
                   </p>
 
                   <h2 className="mt-3 text-xl font-semibold tracking-tight text-foreground">
-                    {blog.title}
+                    {blog.title?.trim() || "Untitled blog"}
                   </h2>
 
                   <p className="mt-3 flex-1 text-sm leading-relaxed text-muted-foreground">
-                    {blog.excerpt}
+                    {blog.excerpt?.trim() || "No excerpt available."}
                   </p>
 
                   <div className="mt-6 flex items-center gap-4 text-xs text-muted-foreground">
                     <span className="inline-flex items-center gap-1.5">
                       <CalendarDays className="h-3.5 w-3.5" />
-                      {blog.publishedAt}
+                      {formatDateLabel(blog.publishedAt ?? blog.createdAt)}
                     </span>
-                    <span className="inline-flex items-center gap-1.5">
-                      <Clock3 className="h-3.5 w-3.5" />
-                      {blog.readTime}
-                    </span>
+                    <span>By {blog.author?.fullName?.trim() || "Unknown author"}</span>
                   </div>
 
                   <Link
-                    href={`/blogs/${blog.id}`}
+                    href={`/blogs/${blog.slug}`}
                     className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-foreground transition-colors group-hover:text-primary"
                   >
                     Read article
@@ -278,7 +253,7 @@ export function BlogsGrid() {
             >
               <button
                 type="button"
-                disabled={safePage === 1}
+                disabled={page === 1}
                 onClick={() => setPage((currentPage) => Math.max(1, currentPage - 1))}
                 className="h-10 rounded-xl border border-border/60 px-4 text-sm text-foreground transition-colors disabled:cursor-not-allowed disabled:opacity-40"
               >
@@ -291,7 +266,7 @@ export function BlogsGrid() {
                   type="button"
                   onClick={() => setPage(pageNumber)}
                   className={`h-10 min-w-10 rounded-xl border px-3 text-sm transition-colors ${
-                    safePage === pageNumber
+                    page === pageNumber
                       ? "border-primary bg-primary text-primary-foreground"
                       : "border-border/60 text-foreground hover:border-primary/40"
                   }`}
@@ -302,7 +277,7 @@ export function BlogsGrid() {
 
               <button
                 type="button"
-                disabled={safePage === totalPages}
+                disabled={page === totalPages}
                 onClick={() => setPage((currentPage) => Math.min(totalPages, currentPage + 1))}
                 className="h-10 rounded-xl border border-border/60 px-4 text-sm text-foreground transition-colors disabled:cursor-not-allowed disabled:opacity-40"
               >

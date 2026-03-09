@@ -393,7 +393,7 @@ export function AdminBlogsGrid() {
                     <div className="flex mt-6  justify-between items-center">
                       <Link
                         className="inline-flex items-center gap-2 text-sm font-medium text-foreground transition-colors group-hover:text-primary hover:underline underline-offset-3"
-                        href={`/blogs/${blog.id}`}
+                        href={`/blogs/${blog.slug || blog.id}`}
                       >
                         Read article
                         <ArrowUpRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />

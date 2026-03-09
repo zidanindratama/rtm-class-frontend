@@ -1,14 +1,15 @@
 import { AdminBlogsGrid } from "@/components/dashboard/blogs/blogs-grid";
-import { DashboardPageContent } from "@/components/dashboard/dashboard-page-content";
 
 export default function DashboardBlogsPage() {
-  return (<>
-  
-    <DashboardPageContent
-      title="Blog CMS"
-      description="Manage blog drafts, publish updates, and organize learning content."
-    />
-    <AdminBlogsGrid/>
-  </>
+  return (
+    <section className="space-y-4">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Blog Management</h1>
+        <p className="text-sm text-muted-foreground">
+          Manage blog posts with create, edit, publish, and delete actions.
+        </p>
+      </div>
+      <AdminBlogsGrid />
+    </section>
   );
 }

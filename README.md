@@ -1,36 +1,102 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# RTM Class Frontend
 
-## Getting Started
+Frontend dashboard and landing app for RTM Class, built with Next.js App Router.
 
-First, run the development server:
+## Tech Stack
+- Next.js 16
+- React 19
+- TypeScript
+- Tailwind CSS 4
+- shadcn/ui + Radix UI
+- TanStack Query
+- Axios
+- TipTap Editor
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Main Features
+- Auth flow (`sign-in`, `sign-up`, `forgot/reset password`)
+- Landing pages (`/`, blogs, legal pages, contact)
+- Role-based dashboard (`ADMIN`, `TEACHER`, `STUDENT`)
+- User management (admins, teachers, students)
+- Class management (all classes, my-class, join class, detail, members)
+- Forums in class context
+- Assignments flow (list/detail/workspace submit/grading workspace/gradebook)
+- Blogs CMS + public blogs
+
+## Project Structure
+```text
+app/                  # Next.js routes (landing + dashboard)
+components/           # UI and feature components
+hooks/                # data/query hooks
+lib/                  # axios instance, constants, helpers
+providers/            # app-level providers
+routes/               # route keys and route map
+types/                # shared frontend types
+public/               # static assets
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Requirements
+- Node.js 20+
+- npm
+- Backend API running (`rtm-class-backend`)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment Setup
+1. Copy env:
+```bash
+cp .env.example .env.local
+```
+2. Configure values in `.env.local`:
+- `NEXT_PUBLIC_API_BASE_URL`
+- `NEXT_PUBLIC_CLIENT_DOMAIN`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Example:
+```env
+NEXT_PUBLIC_API_BASE_URL=http://localhost:5000/api/v1
+NEXT_PUBLIC_CLIENT_DOMAIN=http://localhost:3000
+```
 
-## Learn More
+## Run Locally
+```bash
+npm install
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+Open `http://localhost:3000`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Scripts
+- `npm run dev` -> start dev server
+- `npm run build` -> production build check
+- `npm run start` -> run production server
+- `npm run lint` -> lint codebase
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## API Contract Notes
+- All requests use API base from env.
+- Protected requests send `Authorization: Bearer <token>`.
+- Backend requires header `x-client-domain`.
+- API response envelope is:
+```json
+{
+  "message": "Request status",
+  "data": {},
+  "meta": {},
+  "error": null
+}
+```
 
-## Deploy on Vercel
+## Deployment
+Detailed deployment steps are documented in:
+- [DEPLOYMENT.md](./DEPLOYMENT.md)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Changelog
+Detailed history:
+- [CHANGELOG.md](./CHANGELOG.md)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Latest highlights:
+- 2026-03-09
+  - Assignment UX now uses dedicated pages:
+    - student solving workspace (`/assignments/:assignmentId/work`) with essay pagination (5 per page)
+    - teacher/admin grading workspace (`/assignments/:assignmentId/grade`)
+  - Assignment detail page kept concise (no long question list or inline grading form).
+  - Student submission view now includes teacher general feedback and readable answer rendering.
+  - Assignment UI synced with backend typed payload and attempt history support.
+  - Dashboard/my-class/class detail layouts refined for cleaner admin-teacher workflow.
+  - Blog/forum/class UX iteration and consistency improvements.

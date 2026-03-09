@@ -27,24 +27,9 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { AuthUser } from "@/components/globals/profile/types";
 
-type UserProfile = {
-  id: string;
-  address: string | null;
-  phoneNumber: string | null;
-  pictureUrl: string | null;
-};
 
-type AuthUser = {
-  id: string;
-  fullName: string;
-  email: string;
-  role: string;
-  isSuspended: boolean;
-  profile: UserProfile;
-  createdAt: string;
-  updatedAt: string;
-};
 
 type AuthMeResponseData = {
   user: AuthUser;

@@ -21,6 +21,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { usePostData } from "@/hooks/use-post-data";
+import { useRouter } from "next/navigation";
 
 const forgotPasswordSchema = z.object({
   email: z.email("Invalid email address."),
@@ -29,6 +31,7 @@ const forgotPasswordSchema = z.object({
 type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>;
 
 export function ForgotPasswordForm() {
+  const router = useRouter();
   const form = useForm<ForgotPasswordValues>({
     resolver: zodResolver(forgotPasswordSchema),
     defaultValues: {
@@ -36,9 +39,23 @@ export function ForgotPasswordForm() {
     },
   });
 
+  const forgotPasswordMutation = usePostData<unknown, ForgotPasswordValues>({
+    endpoint: "/auth/forgot-password",
+    successMessage: "Email sent successfully.",
+    errorMessage: "Failed to send email.",
+    options: {
+      onSuccess: () => {
+        router.push("/auth/reset-password");
+      },
+    },
+  });
+
   const onSubmit = (values: ForgotPasswordValues) => {
-    console.log("forgot-password payload", values);
+    forgotPasswordMutation.mutate(values);
   };
+
+  const isSubmitting =
+    forgotPasswordMutation.isPending || form.formState.isSubmitting;
 
   return (
     <AuthShell
@@ -51,7 +68,10 @@ export function ForgotPasswordForm() {
       <Card>
         <CardHeader>
           <CardTitle>Forgot Password</CardTitle>
-          <CardDescription>Frontend is ready. Submit currently validates and logs payload to console.</CardDescription>
+          <CardDescription>
+            Frontend is ready. Submit currently validates and logs payload to
+            console.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -63,7 +83,11 @@ export function ForgotPasswordForm() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="name@example.com" {...field} />
+                      <Input
+                        type="email"
+                        placeholder="name@example.com"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -71,7 +95,7 @@ export function ForgotPasswordForm() {
               />
 
               <Button type="submit" className="w-full">
-                Send OTP
+                {isSubmitting ? "Submitting..." : "Send OTP"}
               </Button>
             </form>
           </Form>
@@ -80,4 +104,3 @@ export function ForgotPasswordForm() {
     </AuthShell>
   );
 }
-

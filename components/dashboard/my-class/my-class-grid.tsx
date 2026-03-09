@@ -337,6 +337,13 @@ export function MyClassGrid() {
                         Open Forum
                         <ArrowUpRight className="h-4 w-4" />
                       </Link>
+                      <Link
+                        className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary hover:underline underline-offset-3"
+                        href={`/dashboard/my-class/${cls.id}/assignments`}
+                      >
+                        Assignments
+                        <ArrowUpRight className="h-4 w-4" />
+                      </Link>
                       {canManageClass ? (
                         <Link
                           className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary hover:underline underline-offset-3"

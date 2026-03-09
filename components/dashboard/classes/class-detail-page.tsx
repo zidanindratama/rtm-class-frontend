@@ -9,16 +9,20 @@ import {
   Check,
   Copy,
   CalendarDays,
+  FilePenLine,
   LogOut,
   Mail,
   MessageSquareText,
   School,
+  Trash2,
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useGetData } from "@/hooks/use-get-data";
 import { usePostData } from "@/hooks/use-post-data";
+import { useDeleteData } from "@/hooks/use-delete-data";
 import { APISingleResponse } from "@/types/api-response";
+import { DeleteDialog } from "@/components/globals/dialog/delete-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -67,6 +71,7 @@ export function ClassDetailPage({
   const router = useRouter();
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const {
     data: classDetailResponse,
@@ -87,6 +92,23 @@ export function ClassDetailPage({
     invalidateKeys: [["my-class"], ["admin", "classes"]],
     options: {
       onSuccess: () => {
+        router.replace("/dashboard/my-class");
+      },
+    },
+  });
+  const deleteClassMutation = useDeleteData<unknown, { id: string }>({
+    key: ["classes", "delete", classId],
+    endpoint: (variables) => `/classes/${variables.id}`,
+    successMessage: "Class deleted successfully.",
+    errorMessage: "Failed to delete class.",
+    invalidateKeys: [["my-class"], ["admin", "classes"]],
+    options: {
+      onSuccess: () => {
+        const role = authTokenStorage.getUserRole();
+        if (role === "ADMIN") {
+          router.replace("/dashboard/classes");
+          return;
+        }
         router.replace("/dashboard/my-class");
       },
     },
@@ -122,6 +144,7 @@ export function ClassDetailPage({
   const classData = classDetailResponse.data;
   const currentRole: AuthRole | null = authTokenStorage.getUserRole();
   const canLeaveClass = enableStudentLeave && currentRole === "STUDENT";
+  const canManageClass = currentRole === "ADMIN" || currentRole === "TEACHER";
   const resolvedMembersHref =
     membersHref ?? `/dashboard/classes/${classId}/members`;
   const resolvedForumsHref = forumsHref ?? `/dashboard/my-class/${classId}/forums`;
@@ -250,6 +273,23 @@ export function ClassDetailPage({
                     </p>
                   </button>
                 ) : null}
+
+                {canManageClass ? (
+                  <Link
+                    href={`/dashboard/classes/${classId}/edit`}
+                    className="group rounded-xl border border-border/70 bg-card/70 p-4 transition-colors hover:border-primary/40"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <FilePenLine className="h-5 w-5 text-primary" />
+                      <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                    </div>
+                    <p className="mt-3 text-sm font-semibold">Edit Class</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Update class title, level, institution, year, and description.
+                    </p>
+                  </Link>
+                ) : null}
+
               </div>
             </div>
 
@@ -370,6 +410,42 @@ export function ClassDetailPage({
           </CardContent>
         </Card>
       ) : null}
+
+      {canManageClass ? (
+        <Card className="border-destructive/30 bg-destructive/5">
+          <CardHeader>
+            <CardTitle className="inline-flex items-center gap-2 text-destructive">
+              <Trash2 className="h-4 w-4" />
+              Danger Zone
+            </CardTitle>
+            <CardDescription>
+              Permanently delete this class and all related content. This action cannot be undone.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex justify-end">
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => setDeleteDialogOpen(true)}
+              disabled={deleteClassMutation.isPending}
+            >
+              {deleteClassMutation.isPending ? "Deleting..." : "Delete Class"}
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      <DeleteDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Delete class?"
+        description="This action cannot be undone. The class and related data will be removed permanently."
+        confirmText="Delete"
+        onConfirm={() => {
+          setDeleteDialogOpen(false);
+          deleteClassMutation.mutate({ id: classId });
+        }}
+      />
     </section>
   );
 }

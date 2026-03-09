@@ -14,11 +14,14 @@ import {
 } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useGetData } from "@/hooks/use-get-data";
+import { useDeleteData } from "@/hooks/use-delete-data";
 import { APIListResponse } from "@/types/api-response";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { PaginationWithLinks } from "@/components/ui/pagination-with-link";
+import { DeleteDialog } from "@/components/globals/dialog/delete-dialog";
+import { authTokenStorage } from "@/lib/axios-instance";
 import {
   Select,
   SelectContent,
@@ -60,6 +63,9 @@ export function MyClassGrid() {
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<SortByOption>("all");
   const [sortOrder, setSortOrder] = useState<SortOrderOption>("all");
+  const [classPendingDelete, setClassPendingDelete] = useState<ClassDetailResponse | null>(null);
+  const currentRole = authTokenStorage.getUserRole();
+  const canManageClass = currentRole === "TEACHER" || currentRole === "ADMIN";
 
   const rawPage = Number.parseInt(searchParams.get("page") ?? "1", 10);
   const page = Number.isNaN(rawPage) ? 1 : Math.max(1, rawPage);
@@ -101,6 +107,14 @@ export function MyClassGrid() {
       sort_order: sortOrderParam,
     },
     errorMessage: "Failed to load class data.",
+  });
+
+  const deleteClassMutation = useDeleteData<unknown, { id: string }>({
+    key: ["my-class", "delete"],
+    endpoint: (variables) => `/classes/${variables.id}`,
+    successMessage: "Class deleted successfully.",
+    errorMessage: "Failed to delete class.",
+    invalidateKeys: [["my-class"], ["admin", "classes"]],
   });
 
   const classes = listResponse?.data ?? [];
@@ -323,6 +337,25 @@ export function MyClassGrid() {
                         Open Forum
                         <ArrowUpRight className="h-4 w-4" />
                       </Link>
+                      {canManageClass ? (
+                        <Link
+                          className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary hover:underline underline-offset-3"
+                          href={`/dashboard/classes/${cls.id}/edit`}
+                        >
+                          Edit Class
+                          <ArrowUpRight className="h-4 w-4" />
+                        </Link>
+                      ) : null}
+                      {canManageClass ? (
+                        <button
+                          type="button"
+                          onClick={() => setClassPendingDelete(cls)}
+                          className="inline-flex items-center gap-2 text-sm font-medium text-destructive transition-colors hover:underline underline-offset-3 disabled:cursor-not-allowed disabled:opacity-60"
+                          disabled={deleteClassMutation.isPending}
+                        >
+                          Delete Class
+                        </button>
+                      ) : null}
                     </div>
                   </motion.article>
                 );
@@ -349,6 +382,26 @@ export function MyClassGrid() {
           </>
         )}
       </div>
+
+      <DeleteDialog
+        open={Boolean(classPendingDelete)}
+        onOpenChange={(open) => {
+          if (!open) setClassPendingDelete(null);
+        }}
+        title="Delete class?"
+        description={
+          classPendingDelete
+            ? `This action cannot be undone. "${classPendingDelete.name}" will be removed permanently.`
+            : ""
+        }
+        confirmText="Delete"
+        onConfirm={() => {
+          if (!classPendingDelete) return;
+          const classId = classPendingDelete.id;
+          setClassPendingDelete(null);
+          deleteClassMutation.mutate({ id: classId });
+        }}
+      />
     </section>
   );
 }

@@ -29,5 +29,11 @@ export default async function DashboardPage() {
   const role = toDashboardRole(cookieStore.get(USER_ROLE_KEY)?.value) ?? "TEACHER";
   const copy = dashboardCopyByRole[role];
 
-  return <DashboardPageContent title={copy.title} description={copy.description} />;
+  return (
+    <DashboardPageContent
+      role={role}
+      title={copy.title}
+      description={copy.description}
+    />
+  );
 }

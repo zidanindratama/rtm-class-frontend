@@ -15,6 +15,8 @@ export default async function Page({
       usageDescription="No class description yet. Add context so teachers and students can understand this class quickly."
       enableStudentLeave
       membersHref={`/dashboard/my-class/${id}/members`}
+      showForumButton
+      forumsHref={`/dashboard/my-class/${id}/forums`}
     />
   );
 }

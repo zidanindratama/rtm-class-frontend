@@ -308,13 +308,22 @@ export function MyClassGrid() {
                       </span>
                     </div>
 
-                    <Link
-                      className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-foreground transition-colors group-hover:text-primary hover:underline underline-offset-3"
-                      href={`/dashboard/my-class/${cls.id}`}
-                    >
-                      View Class
-                      <ArrowUpRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                    </Link>
+                    <div className="mt-6 flex flex-wrap items-center gap-3">
+                      <Link
+                        className="inline-flex items-center gap-2 text-sm font-medium text-foreground transition-colors group-hover:text-primary hover:underline underline-offset-3"
+                        href={`/dashboard/my-class/${cls.id}`}
+                      >
+                        View Class
+                        <ArrowUpRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                      </Link>
+                      <Link
+                        className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary hover:underline underline-offset-3"
+                        href={`/dashboard/my-class/${cls.id}/forums`}
+                      >
+                        Open Forum
+                        <ArrowUpRight className="h-4 w-4" />
+                      </Link>
+                    </div>
                   </motion.article>
                 );
               })}

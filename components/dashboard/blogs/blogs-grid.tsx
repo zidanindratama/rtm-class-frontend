@@ -9,6 +9,7 @@ import {
   EllipsisIcon,
   Pencil,
   PlusIcon,
+  MessageCircle,
   Search,
   Trash,
   UserRound,
@@ -412,6 +413,12 @@ export function AdminBlogsGrid() {
                             <Link href={`/dashboard/blogs/${blog.id}/edit`}>
                               <Pencil className="mr-1 h-4 w-4" />
                               <span>Edit</span>
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link href={`/blogs/${blog.slug}#comments`}>
+                              <MessageCircle className="mr-1 h-4 w-4" />
+                              <span>Moderate Comments</span>
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem

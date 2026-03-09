@@ -2,8 +2,15 @@
 
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowRight, CheckCircle2, KeyRound, ShieldCheck, Users } from "lucide-react";
-import { useState } from "react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Info,
+  KeyRound,
+  ShieldCheck,
+  Sparkles,
+  Users,
+} from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { usePostData } from "@/hooks/use-post-data";
@@ -41,7 +48,6 @@ function normalizeClassCode(rawValue: string) {
 
 export function JoinClassPage() {
   const router = useRouter();
-  const [codePreview, setCodePreview] = useState("");
 
   const form = useForm<JoinClassValues>({
     resolver: zodResolver(joinClassSchema),
@@ -89,7 +95,7 @@ export function JoinClassPage() {
           <CardHeader>
             <CardTitle>Join Form</CardTitle>
             <CardDescription>
-              Use the code exactly as shared. We automatically normalize casing and spaces.
+              Enter your access code and we will process format normalization automatically.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
@@ -102,32 +108,42 @@ export function JoinClassPage() {
                     <FormItem>
                       <FormLabel>Class Code</FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder="Enter class code"
-                          value={field.value}
-                          onChange={(event) => {
-                            const normalizedCode = normalizeClassCode(event.target.value);
-                            field.onChange(normalizedCode);
-                            setCodePreview(normalizedCode);
-                          }}
-                        />
+                        <div className="relative">
+                          <KeyRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                          <Input
+                            placeholder="Enter class code"
+                            className="h-11 pl-10 tracking-[0.08em] uppercase"
+                            value={field.value}
+                            onChange={(event) => {
+                              const normalizedCode = normalizeClassCode(event.target.value);
+                              field.onChange(normalizedCode);
+                            }}
+                          />
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                <div className="rounded-xl border border-dashed border-border/70 bg-muted/30 p-4">
-                  <p className="text-xs text-muted-foreground">Normalized code preview</p>
-                  <p className="mt-1 text-sm font-semibold tracking-wide text-foreground">
-                    {codePreview || "-"}
+                <div className="rounded-xl border border-border/70 bg-muted/20 p-4">
+                  <p className="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    <Info className="h-3.5 w-3.5" />
+                    Notes
                   </p>
+                  <div className="mt-2 space-y-1.5 text-sm text-muted-foreground">
+                    <p className="inline-flex items-start gap-2">
+                      <Sparkles className="mt-0.5 h-3.5 w-3.5 text-primary" />
+                      Spaces are removed and lowercase letters are converted automatically.
+                    </p>
+                    <p className="inline-flex items-start gap-2">
+                      <Sparkles className="mt-0.5 h-3.5 w-3.5 text-primary" />
+                      Ask your teacher for a new code if this one is invalid or expired.
+                    </p>
+                  </div>
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-5">
-                  <p className="text-xs text-muted-foreground">
-                    If this code is invalid or expired, contact your class teacher.
-                  </p>
+                <div className="flex justify-end border-t pt-5">
                   <Button type="submit" disabled={joinClassMutation.isPending}>
                     {joinClassMutation.isPending ? "Joining..." : "Join Class"}
                     <ArrowRight className="h-4 w-4" />

@@ -9,6 +9,7 @@ import {
   Check,
   Copy,
   CalendarDays,
+  LogOut,
   Mail,
   MessageSquareText,
   School,
@@ -39,6 +40,8 @@ type ClassDetailPageProps = {
   usageDescription?: string;
   enableStudentLeave?: boolean;
   membersHref?: string;
+  showForumButton?: boolean;
+  forumsHref?: string;
 };
 
 function formatDateLabel(iso: string) {
@@ -58,6 +61,8 @@ export function ClassDetailPage({
   usageDescription = "Use this page to monitor class health and members.",
   enableStudentLeave = false,
   membersHref,
+  showForumButton = false,
+  forumsHref,
 }: ClassDetailPageProps) {
   const router = useRouter();
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
@@ -119,6 +124,7 @@ export function ClassDetailPage({
   const canLeaveClass = enableStudentLeave && currentRole === "STUDENT";
   const resolvedMembersHref =
     membersHref ?? `/dashboard/classes/${classId}/members`;
+  const resolvedForumsHref = forumsHref ?? `/dashboard/my-class/${classId}/forums`;
 
   const stats = [
     {
@@ -189,27 +195,62 @@ export function ClassDetailPage({
               {classData.description?.trim() || usageDescription}
             </p>
 
-            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border/70 bg-background/80 p-3 backdrop-blur">
-              <Button asChild size="sm">
-                <Link href={resolvedMembersHref}>
-                  Open Class Members
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
+            <div className="rounded-lg border border-border/70 bg-background/80 p-3 backdrop-blur">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Quick Actions
+              </p>
 
-              {canLeaveClass ? (
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => setLeaveDialogOpen(true)}
-                  disabled={leaveClassMutation.isPending}
+              <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                <Link
+                  href={resolvedMembersHref}
+                  className="group rounded-xl border border-border/70 bg-card/70 p-4 transition-colors hover:border-primary/40"
                 >
-                  {leaveClassMutation.isPending
-                    ? "Leaving..."
-                    : "Leave Class"}
-                </Button>
-              ) : null}
+                  <div className="flex items-start justify-between gap-2">
+                    <Users className="h-5 w-5 text-primary" />
+                    <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                  </div>
+                  <p className="mt-3 text-sm font-semibold">Class Members</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    View and manage student members in this class.
+                  </p>
+                </Link>
+
+                {showForumButton ? (
+                  <Link
+                    href={resolvedForumsHref}
+                    className="group rounded-xl border border-border/70 bg-card/70 p-4 transition-colors hover:border-primary/40"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <MessageSquareText className="h-5 w-5 text-primary" />
+                      <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                    </div>
+                    <p className="mt-3 text-sm font-semibold">Class Forum</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Open discussions, threads, and class collaboration.
+                    </p>
+                  </Link>
+                ) : null}
+
+                {canLeaveClass ? (
+                  <button
+                    type="button"
+                    onClick={() => setLeaveDialogOpen(true)}
+                    disabled={leaveClassMutation.isPending}
+                    className="group rounded-xl border border-destructive/35 bg-destructive/[0.04] p-4 text-left transition-colors hover:border-destructive/60 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <LogOut className="h-5 w-5 text-destructive" />
+                      <ArrowRight className="h-4 w-4 text-destructive/70 transition-transform group-hover:translate-x-0.5" />
+                    </div>
+                    <p className="mt-3 text-sm font-semibold text-destructive">
+                      {leaveClassMutation.isPending ? "Leaving..." : "Leave Class"}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Exit this class and return to your class list.
+                    </p>
+                  </button>
+                ) : null}
+              </div>
             </div>
 
             <div className="grid gap-3 pt-1 md:grid-cols-2">

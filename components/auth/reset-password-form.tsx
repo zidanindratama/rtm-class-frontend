@@ -23,6 +23,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { usePostData } from "@/hooks/use-post-data";
+import { useRouter } from "next/navigation";
 
 const resetPasswordSchema = z
   .object({
@@ -36,7 +38,7 @@ const resetPasswordSchema = z
       .min(8, "Password must be at least 8 characters.")
       .regex(
         /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).+$/,
-        "Password must include uppercase, lowercase, number, and symbol."
+        "Password must include uppercase, lowercase, number, and symbol.",
       ),
     confirmPassword: z.string().min(1, "Please confirm your new password."),
   })
@@ -50,7 +52,7 @@ type ResetPasswordValues = z.infer<typeof resetPasswordSchema>;
 export function ResetPasswordForm() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
+  const router = useRouter();
   const form = useForm<ResetPasswordValues>({
     resolver: zodResolver(resetPasswordSchema),
     defaultValues: {
@@ -61,9 +63,24 @@ export function ResetPasswordForm() {
     },
   });
 
+  const resetPasswordMutation = usePostData<unknown>({
+    endpoint: "/auth/reset-password",
+    successMessage: "Password changed successfully.",
+    errorMessage: "Failed to change password.",
+    options: {
+      onSuccess: () => {
+        form.reset();
+        router.push("/auth/sign-in");
+      },
+    },
+  });
+
   const onSubmit = ({ email, otpCode, newPassword }: ResetPasswordValues) => {
-    console.log("reset-password payload", { email, otpCode, newPassword });
+    resetPasswordMutation.mutate({ email, otpCode, newPassword });
   };
+
+  const isSubmitting =
+    resetPasswordMutation.isPending || form.formState.isSubmitting;
 
   return (
     <AuthShell
@@ -76,7 +93,9 @@ export function ResetPasswordForm() {
       <Card>
         <CardHeader>
           <CardTitle>Reset Password</CardTitle>
-          <CardDescription>Payload backend: email, otpCode, newPassword.</CardDescription>
+          <CardDescription>
+            Payload backend: email, otpCode, newPassword.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -88,7 +107,11 @@ export function ResetPasswordForm() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="name@example.com" {...field} />
+                      <Input
+                        type="email"
+                        placeholder="name@example.com"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -133,7 +156,9 @@ export function ResetPasswordForm() {
                           variant="ghost"
                           size="icon"
                           className="absolute right-1 top-1 h-7 w-7 text-muted-foreground"
-                          onClick={() => setShowNewPassword((previous) => !previous)}
+                          onClick={() =>
+                            setShowNewPassword((previous) => !previous)
+                          }
                         >
                           {showNewPassword ? (
                             <EyeOff className="h-4 w-4" />
@@ -141,7 +166,9 @@ export function ResetPasswordForm() {
                             <Eye className="h-4 w-4" />
                           )}
                           <span className="sr-only">
-                            {showNewPassword ? "Hide password" : "Show password"}
+                            {showNewPassword
+                              ? "Hide password"
+                              : "Show password"}
                           </span>
                         </Button>
                       </div>
@@ -170,7 +197,9 @@ export function ResetPasswordForm() {
                           variant="ghost"
                           size="icon"
                           className="absolute right-1 top-1 h-7 w-7 text-muted-foreground"
-                          onClick={() => setShowConfirmPassword((previous) => !previous)}
+                          onClick={() =>
+                            setShowConfirmPassword((previous) => !previous)
+                          }
                         >
                           {showConfirmPassword ? (
                             <EyeOff className="h-4 w-4" />
@@ -178,7 +207,9 @@ export function ResetPasswordForm() {
                             <Eye className="h-4 w-4" />
                           )}
                           <span className="sr-only">
-                            {showConfirmPassword ? "Hide password" : "Show password"}
+                            {showConfirmPassword
+                              ? "Hide password"
+                              : "Show password"}
                           </span>
                         </Button>
                       </div>
@@ -189,7 +220,7 @@ export function ResetPasswordForm() {
               />
 
               <Button type="submit" className="w-full">
-                Save New Password
+                {isSubmitting ? "Submitting..." : "Reset Password"}
               </Button>
             </form>
           </Form>

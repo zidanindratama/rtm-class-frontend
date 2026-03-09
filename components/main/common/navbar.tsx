@@ -66,9 +66,7 @@ export function Navbar() {
           <div className="flex items-center gap-2 md:gap-3">
             <ThemeToggle />
             {isLoggedIn ? (
-              <div className="hidden md:block">
-                <LoggedProfile />
-              </div>
+              <LoggedProfile />
             ) : (
               <Button
                 asChild
@@ -101,35 +99,35 @@ export function Navbar() {
       <AnimatePresence>
         {isMenuOpen && (
           <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.35, ease: smoothEase }}
-              className="fixed inset-0 z-[60] flex min-h-screen flex-col bg-background/96 px-5 pb-8 pt-6 backdrop-blur-2xl md:hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.35, ease: smoothEase }}
+            className="fixed inset-0 z-[60] flex min-h-screen flex-col bg-background/96 px-5 pb-8 pt-6 backdrop-blur-2xl md:hidden"
           >
-              <div className="mx-auto flex w-full max-w-7xl items-center justify-between pb-7">
-                <Link href="/" className="flex items-center gap-2.5 group">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-xl font-bold text-primary-foreground shadow-lg shadow-primary/20">
-                    R
-                  </div>
-                  <span className="bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-xl font-bold tracking-tight text-transparent">
-                    RTM Class<span className="text-primary">.ai</span>
-                  </span>
-                </Link>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="rounded-full"
-                  aria-label="Close menu"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  <X className="h-5 w-5" />
-                </Button>
-              </div>
+            <div className="mx-auto flex w-full max-w-7xl items-center justify-between pb-7">
+              <Link href="/" className="flex items-center gap-2.5 group">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-xl font-bold text-primary-foreground shadow-lg shadow-primary/20">
+                  R
+                </div>
+                <span className="bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-xl font-bold tracking-tight text-transparent">
+                  RTM Class<span className="text-primary">.ai</span>
+                </span>
+              </Link>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="rounded-full"
+                aria-label="Close menu"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
 
-              <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col">
-                <div className="space-y-2">
+            <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col">
+              <div className="space-y-2">
                 {mainRoutes.map((link, index) => {
                   const isActive = pathname === link.href;
                   return (
@@ -159,24 +157,23 @@ export function Navbar() {
                     </motion.div>
                   );
                 })}
-                </div>
-
-                {isLoggedIn ? (
-                  <Button asChild className="mt-auto h-14 w-full rounded-2xl text-base font-semibold">
-                    <Link href="/dashboard/profile" onClick={() => setIsMenuOpen(false)}>
-                      LoggedProfile
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
-                  </Button>
-                ) : (
-                  <Button asChild className="mt-auto h-14 w-full rounded-2xl text-base font-semibold">
-                    <Link href="/auth/sign-up" onClick={() => setIsMenuOpen(false)}>
-                      Get Started
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
-                  </Button>
-                )}
               </div>
+
+              {!isLoggedIn && (
+                <Button
+                  asChild
+                  className="mt-auto h-14 w-full rounded-2xl text-base font-semibold"
+                >
+                  <Link
+                    href="/auth/sign-up"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Get Started
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

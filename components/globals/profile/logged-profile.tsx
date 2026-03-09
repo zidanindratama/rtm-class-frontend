@@ -80,7 +80,7 @@ export function LoggedProfile() {
         {!isInDashboardRoute && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
+            <DropdownMenuItem asChild>  
               <Link href="/dashboard">
                 <LayoutDashboard className="h-4 w-4" />
                 Dashboard

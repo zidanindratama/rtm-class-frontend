@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   ArrowRight,
+  BookOpenText,
   Check,
   ClipboardCheck,
   Copy,
@@ -49,6 +50,8 @@ type ClassDetailPageProps = {
   forumsHref?: string;
   showAssignmentsButton?: boolean;
   assignmentsHref?: string;
+  showMaterialsButton?: boolean;
+  materialsHref?: string;
 };
 
 function formatDateLabel(iso: string) {
@@ -72,6 +75,8 @@ export function ClassDetailPage({
   forumsHref,
   showAssignmentsButton = false,
   assignmentsHref,
+  showMaterialsButton = false,
+  materialsHref,
 }: ClassDetailPageProps) {
   const router = useRouter();
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
@@ -155,6 +160,8 @@ export function ClassDetailPage({
   const resolvedForumsHref = forumsHref ?? `/dashboard/my-class/${classId}/forums`;
   const resolvedAssignmentsHref =
     assignmentsHref ?? `/dashboard/my-class/${classId}/assignments`;
+  const resolvedMaterialsHref =
+    materialsHref ?? `/dashboard/my-class/${classId}/materials`;
 
   const stats = [
     {
@@ -273,6 +280,22 @@ export function ClassDetailPage({
                     <p className="mt-3 text-sm font-semibold">Assignments</p>
                     <p className="mt-1 text-xs text-muted-foreground">
                       Open tasks, submission status, and grading details.
+                    </p>
+                  </Link>
+                ) : null}
+
+                {showMaterialsButton ? (
+                  <Link
+                    href={resolvedMaterialsHref}
+                    className="group rounded-xl border border-border/70 bg-card/70 p-4 transition-colors hover:border-primary/40"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <BookOpenText className="h-5 w-5 text-primary" />
+                      <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                    </div>
+                    <p className="mt-3 text-sm font-semibold">Materials</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Access class resources and learning files.
                     </p>
                   </Link>
                 ) : null}

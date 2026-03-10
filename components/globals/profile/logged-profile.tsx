@@ -92,7 +92,7 @@ export function LoggedProfile() {
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive" onClick={handleLogout}>
           <span className="flex items-center gap-2">
-            <LogOut className="h-4 w-4" />
+            <LogOut className="h-4 w-4 text-destructive" />
             Logout
           </span>
         </DropdownMenuItem>

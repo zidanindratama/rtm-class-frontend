@@ -5,11 +5,18 @@ import { toDashboardRole } from "@/routes/dashboard-routes";
 
 export default async function DashboardLayout({
   children,
+  breadcrumb,
 }: {
   children: React.ReactNode;
+  breadcrumb: React.ReactNode;
 }) {
   const cookieStore = await cookies();
-  const role = toDashboardRole(cookieStore.get(USER_ROLE_KEY)?.value) ?? "TEACHER";
+  const role =
+    toDashboardRole(cookieStore.get(USER_ROLE_KEY)?.value) ?? "TEACHER";
 
-  return <DashboardShell role={role}>{children}</DashboardShell>;
+  return (
+    <DashboardShell role={role} breadcrumb={breadcrumb}>
+      {children}
+    </DashboardShell>
+  );
 }

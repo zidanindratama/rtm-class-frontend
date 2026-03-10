@@ -14,7 +14,6 @@ import { LinkBubbleMenu } from "./components/bubble-menu/link-bubble-menu"
 import { useMinimalTiptapEditor } from "./hooks/use-minimal-tiptap"
 import { MeasuredContainer } from "./components/measured-container"
 import { useTiptapEditor } from "./hooks/use-tiptap-editor"
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 
 export interface MinimalTiptapProps extends Omit<
   UseMinimalTiptapEditorProps,
@@ -27,8 +26,15 @@ export interface MinimalTiptapProps extends Omit<
 }
 
 const Toolbar = ({ editor }: { editor: Editor }) => (
- <ScrollArea className=" border-b border-border p-2">
-    <div className="flex w-max items-center gap-px">
+  <div
+    className="
+      border-b border-border px-2 py-2
+      overflow-x-auto overscroll-x-contain
+      [scrollbar-width:thin]
+      [-webkit-overflow-scrolling:touch]
+    "
+  >
+    <div className="flex min-w-max items-center gap-px">
       <SectionOne editor={editor} activeLevels={[1, 2, 3, 4, 5, 6]} />
 
       <Separator orientation="vertical" className="mx-2" />
@@ -66,8 +72,7 @@ const Toolbar = ({ editor }: { editor: Editor }) => (
         mainActionCount={0}
       />
     </div>
-  <ScrollBar orientation="horizontal" />
-  </ScrollArea>
+  </div>
 )
 
 export const MinimalTiptapEditor = ({

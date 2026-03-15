@@ -3,6 +3,8 @@
 import { BookOpen, CheckCircle2, ClipboardCheck, Medal, TrendingUp } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Pie, PieChart, XAxis, YAxis } from "recharts";
+import { useGetData } from "@/hooks/use-get-data";
+import type { APISingleResponse } from "@/types/api-response";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -17,8 +19,6 @@ import type { DashboardRole } from "@/routes/dashboard-routes";
 
 type DashboardPageContentProps = {
   role?: DashboardRole;
-  title: string;
-  description: string;
 };
 
 type StatCard = {
@@ -61,121 +61,39 @@ type RoleDashboardModel = {
   rankingRows: RowPoint[];
 };
 
-const dashboardDataByRole: Record<DashboardRole, RoleDashboardModel> = {
-  ADMIN: {
-    stats: [
-      { label: "Platform Average Score", value: "84.7", note: "Across Grade X, XI, and XII", icon: TrendingUp },
-      { label: "Active Classes", value: "124", note: "Grade X: 44 | XI: 41 | XII: 39", icon: BookOpen },
-      { label: "Submitted Assignments", value: "9,842", note: "Last 30 days", icon: ClipboardCheck },
-      { label: "Completion Rate", value: "89.3%", note: "On-time submissions across all grades", icon: CheckCircle2 },
-    ],
-    scoreTrend: [
-      { week: "W1", averageScore: 80.2 },
-      { week: "W2", averageScore: 81.6 },
-      { week: "W3", averageScore: 82.9 },
-      { week: "W4", averageScore: 83.4 },
-      { week: "W5", averageScore: 84.1 },
-      { week: "W6", averageScore: 84.7 },
-    ],
-    topClasses: [
-      { className: "XII-Science-1", score: 91.4 },
-      { className: "XI-Science-2", score: 89.8 },
-      { className: "X-Science-1", score: 88.5 },
-      { className: "XI-Language-1", score: 87.9 },
-      { className: "XII-Social-1", score: 86.7 },
-    ],
-    submissionStatus: [
-      { name: "On Time", value: 72, fill: "var(--color-chart-1)" },
-      { name: "Late", value: 20, fill: "var(--color-chart-2)" },
-      { name: "Missing", value: 8, fill: "var(--color-chart-3)" },
-    ],
-    topChartTitle: "Top Performing Classes by Grade",
-    topChartDescription: "Ranking of Grade X, XI, and XII classes by average score.",
-    rankingTitle: "Top Performing Classes",
-    rankingRows: [
-      { name: "XII-Science-1", score: 91.4, completionRate: "96%" },
-      { name: "XI-Science-2", score: 89.8, completionRate: "94%" },
-      { name: "X-Science-1", score: 88.5, completionRate: "92%" },
-      { name: "XI-Language-1", score: 87.9, completionRate: "91%" },
-      { name: "XII-Social-1", score: 86.7, completionRate: "90%" },
-    ],
-  },
-  TEACHER: {
-    stats: [
-      { label: "Class Average Score", value: "82.9", note: "Across your classes", icon: TrendingUp },
-      { label: "Classes Taught", value: "8", note: "Only classes assigned to you", icon: BookOpen },
-      { label: "Submissions This Week", value: "314", note: "From your assignments", icon: ClipboardCheck },
-      { label: "Completion Rate", value: "87.1%", note: "On-time submissions in your classes", icon: CheckCircle2 },
-    ],
-    scoreTrend: [
-      { week: "W1", averageScore: 78.4 },
-      { week: "W2", averageScore: 79.1 },
-      { week: "W3", averageScore: 80.6 },
-      { week: "W4", averageScore: 81.7 },
-      { week: "W5", averageScore: 82.1 },
-      { week: "W6", averageScore: 82.9 },
-    ],
-    topClasses: [
-      { className: "XI-Science-2", score: 88.9 },
-      { className: "X-Science-1", score: 86.4 },
-      { className: "XI-Language-1", score: 85.2 },
-      { className: "X-Social-2", score: 84.7 },
-      { className: "X-Language-1", score: 83.9 },
-    ],
-    submissionStatus: [
-      { name: "On Time", value: 69, fill: "var(--color-chart-1)" },
-      { name: "Late", value: 22, fill: "var(--color-chart-2)" },
-      { name: "Missing", value: 9, fill: "var(--color-chart-3)" },
-    ],
-    topChartTitle: "Top Performing Classes You Teach",
-    topChartDescription: "Ranking of your classes based on average score.",
-    rankingTitle: "Your Class Ranking by Average Score",
-    rankingRows: [
-      { name: "XI-Science-2", score: 88.9, completionRate: "95%" },
-      { name: "X-Science-1", score: 86.4, completionRate: "91%" },
-      { name: "XI-Language-1", score: 85.2, completionRate: "90%" },
-      { name: "X-Social-2", score: 84.7, completionRate: "88%" },
-      { name: "X-Language-1", score: 83.9, completionRate: "87%" },
-    ],
-  },
-  STUDENT: {
-    stats: [
-      { label: "Current Average Score", value: "88.6", note: "Your semester average", icon: TrendingUp },
-      { label: "Enrolled Classes", value: "6", note: "Classes you joined", icon: BookOpen },
-      { label: "Completed Assignments", value: "41", note: "Total submitted", icon: ClipboardCheck },
-      { label: "Completion Rate", value: "90.2%", note: "Your on-time submissions", icon: CheckCircle2 },
-    ],
-    scoreTrend: [
-      { week: "W1", averageScore: 84.1 },
-      { week: "W2", averageScore: 85.3 },
-      { week: "W3", averageScore: 86.2 },
-      { week: "W4", averageScore: 87.4 },
-      { week: "W5", averageScore: 88.1 },
-      { week: "W6", averageScore: 88.6 },
-    ],
-    topClasses: [
-      { className: "XI Mathematics", score: 92.3 },
-      { className: "XI Biology", score: 90.4 },
-      { className: "XI History", score: 88.7 },
-      { className: "XI English", score: 87.5 },
-      { className: "XI Physics", score: 85.9 },
-    ],
-    submissionStatus: [
-      { name: "On Time", value: 75, fill: "var(--color-chart-1)" },
-      { name: "Late", value: 18, fill: "var(--color-chart-2)" },
-      { name: "Missing", value: 7, fill: "var(--color-chart-3)" },
-    ],
-    topChartTitle: "Top Subjects by Your Score",
-    topChartDescription: "Your highest-scoring subjects from enrolled classes.",
-    rankingTitle: "Top Grade XI Subjects by Score",
-    rankingRows: [
-      { name: "XI Mathematics", score: 92.3, completionRate: "98%" },
-      { name: "XI Biology", score: 90.4, completionRate: "95%" },
-      { name: "XI History", score: 88.7, completionRate: "92%" },
-      { name: "XI English", score: 87.5, completionRate: "90%" },
-      { name: "XI Physics", score: 85.9, completionRate: "88%" },
-    ],
-  },
+type DashboardStatApi = {
+  label: string;
+  value: string;
+  note: string;
+};
+
+type DashboardOverviewApi = {
+  role: DashboardRole;
+  title: string;
+  description: string;
+  stats: DashboardStatApi[];
+  scoreTrend: ScoreTrendPoint[];
+  topClasses: TopClassPoint[];
+  submissionStatus: SubmissionStatusPoint[];
+  topChartTitle: string;
+  topChartDescription: string;
+  rankingTitle: string;
+  rankingRows: RowPoint[];
+};
+
+const iconByStatLabel: Array<{ includes: string[]; icon: LucideIcon }> = [
+  { includes: ["average", "score"], icon: TrendingUp },
+  { includes: ["class"], icon: BookOpen },
+  { includes: ["submission", "assignments"], icon: ClipboardCheck },
+  { includes: ["completion"], icon: CheckCircle2 },
+];
+
+const resolveStatIcon = (label: string): LucideIcon => {
+  const normalized = label.toLowerCase();
+  const matched = iconByStatLabel.find((item) =>
+    item.includes.some((needle) => normalized.includes(needle)),
+  );
+  return matched?.icon ?? TrendingUp;
 };
 
 const scoreTrendChartConfig = {
@@ -199,18 +117,55 @@ const submissionChartConfig = {
   },
 } satisfies ChartConfig;
 
-export function DashboardPageContent({ role = "TEACHER", title, description }: DashboardPageContentProps) {
-  const model = dashboardDataByRole[role];
+export function DashboardPageContent({ role = "TEACHER" }: DashboardPageContentProps) {
+  const {
+    data: analyticsResponse,
+    isLoading,
+  } = useGetData<APISingleResponse<DashboardOverviewApi>>({
+    key: ["analytics", "dashboard", role],
+    endpoint: "/analytics/dashboard",
+    extractData: false,
+    params: { weeks: 6 },
+    errorMessage: "Failed to load dashboard analytics.",
+  });
+
+  const payload = analyticsResponse?.data;
+  const title = payload?.title ?? "Dashboard";
+  const description = payload?.description ?? "Overview of your activity.";
+  const currentRole = payload?.role ?? role;
+  const model: RoleDashboardModel = {
+    stats:
+      payload?.stats.map((stat) => ({
+        ...stat,
+        icon: resolveStatIcon(stat.label),
+      })) ?? [],
+    scoreTrend: payload?.scoreTrend ?? [],
+    topClasses: payload?.topClasses ?? [],
+    submissionStatus: payload?.submissionStatus ?? [],
+    topChartTitle: payload?.topChartTitle ?? "Top Performing Classes",
+    topChartDescription:
+      payload?.topChartDescription ?? "Ranking by average score.",
+    rankingTitle: payload?.rankingTitle ?? "Performance Ranking",
+    rankingRows: payload?.rankingRows ?? [],
+  };
 
   return (
     <section className="space-y-8">
       <div className="rounded-3xl border border-border/70 bg-card p-6 md:p-7">
         <Badge variant="outline" className="mb-3 border-primary/30 bg-primary/5 text-primary">
-          {role} Dashboard
+          {currentRole} Dashboard
         </Badge>
         <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{title}</h1>
         <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground md:text-base">{description}</p>
       </div>
+
+      {isLoading ? (
+        <Card className="border-border/70">
+          <CardContent className="py-10 text-sm text-muted-foreground">
+            Loading dashboard analytics...
+          </CardContent>
+        </Card>
+      ) : null}
 
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
         {model.stats.map((stat) => {
@@ -243,7 +198,7 @@ export function DashboardPageContent({ role = "TEACHER", title, description }: D
               <AreaChart data={model.scoreTrend} margin={{ left: 8, right: 8, top: 6 }}>
                 <CartesianGrid vertical={false} />
                 <XAxis dataKey="week" tickLine={false} axisLine={false} tickMargin={10} />
-                <YAxis tickLine={false} axisLine={false} tickMargin={10} width={34} domain={[60, 100]} />
+                <YAxis tickLine={false} axisLine={false} tickMargin={10} width={34} domain={[0, 100]} />
                 <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="line" />} />
                 <Area
                   dataKey="averageScore"
@@ -293,7 +248,7 @@ export function DashboardPageContent({ role = "TEACHER", title, description }: D
               <BarChart data={model.topClasses} margin={{ left: 8, right: 8, top: 4 }}>
                 <CartesianGrid vertical={false} />
                 <XAxis dataKey="className" tickLine={false} axisLine={false} tickMargin={10} />
-                <YAxis tickLine={false} axisLine={false} tickMargin={10} width={34} domain={[60, 100]} />
+                <YAxis tickLine={false} axisLine={false} tickMargin={10} width={34} domain={[0, 100]} />
                 <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
                 <Bar dataKey="score" fill="var(--color-score)" radius={[6, 6, 0, 0]} barSize={36} />
               </BarChart>

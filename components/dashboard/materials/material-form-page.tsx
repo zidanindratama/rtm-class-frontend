@@ -7,7 +7,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft, CheckCircle2, Loader2, OctagonAlert } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { DeleteDialog } from "@/components/globals/dialog/delete-dialog";
 import { useGetData } from "@/hooks/use-get-data";
+import { useDeleteData } from "@/hooks/use-delete-data";
 import { usePatchData } from "@/hooks/use-patch-data";
 import { usePostData } from "@/hooks/use-post-data";
 import { UploadField } from "@/components/globals/upload/upload-field";
@@ -80,6 +82,17 @@ type EditableEssayQuestion = {
   id: string;
   question: string;
   expectedPoints: string;
+};
+
+type TriggerAiPayload = {
+  materialId: string;
+  outputs: Array<"MCQ" | "ESSAY" | "SUMMARY">;
+  options?: {
+    mcqCount?: number;
+    essayCount?: number;
+    summaryMaxWords?: number;
+    mcpEnabled?: boolean;
+  };
 };
 
 function toOptionalTrimmed(value: string | undefined) {
@@ -294,6 +307,10 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
   const [creatingAssignmentOutputId, setCreatingAssignmentOutputId] = useState<string | null>(
     null,
   );
+  const [runningAiType, setRunningAiType] = useState<"MCQ" | "ESSAY" | "SUMMARY" | "ALL" | null>(
+    null,
+  );
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const {
     data: classDetailResponse,
@@ -375,6 +392,58 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
     options: {
       onSuccess: () => {
         router.push(backHref);
+      },
+    },
+  });
+
+  const enqueueAiMutation = usePostData<
+    APISingleResponse<{ materialId: string; jobs: MaterialAiJob[] }>,
+    TriggerAiPayload
+  >({
+    key: ["material-ai-enqueue", materialId],
+    endpoint: "/ai/jobs/transform",
+    extractData: false,
+    successMessage: (response) => response.message || "AI jobs queued successfully.",
+    errorMessage: "Failed to queue AI job.",
+    invalidateKeys: [
+      ["material-ai-jobs", materialId],
+      ["material-ai-outputs", materialId],
+      ["class-materials", "list", classId],
+      ["class-materials", "detail", materialId],
+    ],
+    options: {
+      onSuccess: () => {
+        setRunningAiType(null);
+      },
+      onError: () => {
+        setRunningAiType(null);
+      },
+    },
+  });
+
+  const deleteMaterialMutation = useDeleteData<
+    APISingleResponse<null>,
+    { materialId: string }
+  >({
+    key: ["class-materials", "delete", materialId],
+    endpoint: (variables) => `/materials/${variables.materialId}`,
+    extractData: false,
+    successMessage: (response) => response.message || "Material deleted successfully.",
+    errorMessage: "Failed to delete material.",
+    invalidateKeys: [
+      ["class-materials", "list", classId],
+      ["class-materials", "class", classId],
+      ["class-materials", "detail", materialId],
+      ["material-ai-jobs", materialId],
+      ["material-ai-outputs", materialId],
+    ],
+    options: {
+      onSuccess: () => {
+        setIsDeleteDialogOpen(false);
+        router.push(backHref);
+      },
+      onError: () => {
+        setIsDeleteDialogOpen(false);
       },
     },
   });
@@ -491,6 +560,29 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
       description: toOptionalTrimmed(values.description),
       fileMimeType: inferMimeTypeFromFileUrl(values.fileUrl),
     });
+  };
+
+  const handleTriggerAiJobs = (outputs: Array<"MCQ" | "ESSAY" | "SUMMARY">) => {
+    if (!materialId || outputs.length === 0) return;
+
+    const runningTypeLabel = outputs.length > 1 ? "ALL" : outputs[0];
+    setRunningAiType(runningTypeLabel);
+
+    enqueueAiMutation.mutate({
+      materialId,
+      outputs,
+      options: {
+        mcqCount: 10,
+        essayCount: 5,
+        summaryMaxWords: 200,
+        mcpEnabled: true,
+      },
+    });
+  };
+
+  const handleDeleteMaterial = () => {
+    if (!materialId) return;
+    deleteMaterialMutation.mutate({ materialId });
   };
 
   const classData = classDetailResponse?.data;
@@ -785,6 +877,16 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
                 />
 
                 <div className="flex justify-end gap-2 border-t pt-5 md:col-span-2">
+                  {isEditMode ? (
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      onClick={() => setIsDeleteDialogOpen(true)}
+                      disabled={deleteMaterialMutation.isPending}
+                    >
+                      {deleteMaterialMutation.isPending ? "Deleting..." : "Delete Material"}
+                    </Button>
+                  ) : null}
                   <Button
                     type="button"
                     variant="outline"
@@ -839,6 +941,50 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => handleTriggerAiJobs(["MCQ"])}
+                  disabled={enqueueAiMutation.isPending}
+                >
+                  {runningAiType === "MCQ" && enqueueAiMutation.isPending
+                    ? "Queueing MCQ..."
+                    : "Generate MCQ"}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => handleTriggerAiJobs(["ESSAY"])}
+                  disabled={enqueueAiMutation.isPending}
+                >
+                  {runningAiType === "ESSAY" && enqueueAiMutation.isPending
+                    ? "Queueing Essay..."
+                    : "Generate Essay"}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => handleTriggerAiJobs(["SUMMARY"])}
+                  disabled={enqueueAiMutation.isPending}
+                >
+                  {runningAiType === "SUMMARY" && enqueueAiMutation.isPending
+                    ? "Queueing Summary..."
+                    : "Generate Summary"}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleTriggerAiJobs(["MCQ", "ESSAY", "SUMMARY"])}
+                  disabled={enqueueAiMutation.isPending}
+                >
+                  {runningAiType === "ALL" && enqueueAiMutation.isPending
+                    ? "Queueing All..."
+                    : "Generate All"}
+                </Button>
+              </div>
+
               <div className="flex flex-wrap items-center gap-2 text-sm">
                 <Badge variant={hasPendingJobs ? "secondary" : "outline"}>
                   {hasPendingJobs ? (
@@ -1302,6 +1448,14 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
           </Card>
         ) : null}
       </div>
+      <DeleteDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        title="Delete this material?"
+        description="This action will permanently remove the material and related AI jobs/outputs."
+        confirmText={deleteMaterialMutation.isPending ? "Deleting..." : "Delete Material"}
+        onConfirm={handleDeleteMaterial}
+      />
     </section>
   );
 }

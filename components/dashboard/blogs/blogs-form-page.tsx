@@ -271,7 +271,7 @@ export function BlogFormPage({ mode, blogId }: BlogFormPageProps) {
                     control={createForm.control}
                     name="content"
                     render={({ field }) => (
-                      <FormItem className="md:col-span-2">
+                      <FormItem className="min-w-0 md:col-span-2">
                         <FormLabel>Content</FormLabel>
                         <FormDescription>
                           Write the main article content. You can format text and upload images.
@@ -281,12 +281,12 @@ export function BlogFormPage({ mode, blogId }: BlogFormPageProps) {
                             {...field}
                             value={field.value ?? ""}
                             throttleDelay={0}
-                            className={cn("w-full min-h-150", {
+                            className={cn("w-full min-w-0 min-h-[22rem] sm:min-h-[28rem]", {
                               "border-destructive focus-within:border-destructive":
                                 createForm.formState.errors.content?.message,
                             })}
                             editorContentClassName="some-class"
-                            editorClassName="focus:outline-hidden p-5"
+                            editorClassName="focus:outline-hidden p-3 sm:p-5"
                             placeholder="Write blog content..."
                             autofocus
                             editable

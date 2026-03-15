@@ -9,4 +9,3 @@ export default async function MyClassAssignmentEditPage({
 
   return <AssignmentEditPage classId={id} assignmentId={assignmentId} />;
 }
-

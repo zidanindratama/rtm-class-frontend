@@ -1,15 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Loader2, OctagonAlert } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useGetData } from "@/hooks/use-get-data";
 import { usePostData } from "@/hooks/use-post-data";
 import { UploadField } from "@/components/globals/upload/upload-field";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -33,9 +34,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { ClassDetailResponse } from "@/components/dashboard/classes/class-types";
 import { APISingleResponse } from "@/types/api-response";
 import {
+  MaterialAiJob,
+  MaterialJobsResponse,
   CreateMaterialPayload,
   MaterialDetailResponse,
   MaterialCreateResponse,
+  MaterialOutputItem,
 } from "./material-types";
 
 const createMaterialSchema = z.object({
@@ -82,6 +86,69 @@ function inferMimeTypeFromFileUrl(fileUrl: string) {
   return undefined;
 }
 
+function formatDateTimeLabel(iso?: string | null) {
+  if (!iso) return "-";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "-";
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+
+function getJobStatusBadgeVariant(status: MaterialAiJob["status"]) {
+  if (status === "succeeded") return "default" as const;
+  if (status === "failed_processing" || status === "failed_delivery") {
+    return "destructive" as const;
+  }
+  if (status === "processing") return "secondary" as const;
+  return "outline" as const;
+}
+
+function getJobStatusLabel(status: MaterialAiJob["status"]) {
+  if (status === "accepted") return "Queued";
+  if (status === "processing") return "Processing";
+  if (status === "succeeded") return "Succeeded";
+  if (status === "failed_processing") return "Failed (Processing)";
+  if (status === "failed_delivery") return "Failed (Delivery)";
+  return status;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function getOutputPreview(output: MaterialOutputItem) {
+  const content = asRecord(output.content);
+  if (!content) return "No content preview available.";
+
+  if (output.type === "SUMMARY") {
+    const summary = asRecord(content.summary);
+    const title = typeof summary?.title === "string" ? summary.title : null;
+    const overview =
+      typeof summary?.overview === "string" ? summary.overview : null;
+    if (title && overview) return `${title} - ${overview}`;
+    if (overview) return overview;
+    if (title) return title;
+  }
+
+  if (output.type === "MCQ") {
+    const quiz = asRecord(content.mcq_quiz);
+    const questions = Array.isArray(quiz?.questions) ? quiz.questions : [];
+    return `${questions.length} MCQ question(s) generated.`;
+  }
+
+  if (output.type === "ESSAY") {
+    const quiz = asRecord(content.essay_quiz);
+    const questions = Array.isArray(quiz?.questions) ? quiz.questions : [];
+    return `${questions.length} essay question(s) generated.`;
+  }
+
+  const raw = JSON.stringify(content);
+  return raw.length > 200 ? `${raw.slice(0, 200)}...` : raw;
+}
+
 export function MaterialFormPage(props: MaterialFormPageProps) {
   const { classId } = props;
   const isEditMode = props.mode === "edit";
@@ -110,6 +177,46 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
     extractData: false,
     enabled: isEditMode && Boolean(materialId),
     errorMessage: "Failed to load material detail.",
+  });
+
+  const {
+    data: jobsResponse,
+    isLoading: isLoadingJobs,
+    isError: isJobsError,
+  } = useGetData<APISingleResponse<MaterialJobsResponse>>({
+    key: ["material-ai-jobs", materialId],
+    endpoint: `/materials/${materialId}/jobs`,
+    extractData: false,
+    enabled: isEditMode && Boolean(materialId),
+    params: {
+      includeOverview: true,
+    },
+    errorMessage: "Failed to load AI jobs.",
+    options: {
+      refetchInterval: 4000,
+    },
+  });
+
+  const hasPendingJobs =
+    jobsResponse?.data?.overview?.hasPendingJobs ??
+    jobsResponse?.data?.jobs?.some(
+      (job) => job.status === "accepted" || job.status === "processing",
+    ) ??
+    false;
+
+  const {
+    data: outputsResponse,
+    isLoading: isLoadingOutputs,
+    isError: isOutputsError,
+  } = useGetData<APISingleResponse<MaterialOutputItem[]>>({
+    key: ["material-ai-outputs", materialId],
+    endpoint: `/materials/${materialId}/outputs`,
+    extractData: false,
+    enabled: isEditMode && Boolean(materialId),
+    errorMessage: "Failed to load AI outputs.",
+    options: {
+      refetchInterval: hasPendingJobs ? 4000 : false,
+    },
   });
 
   const createMaterialMutation = usePostData<
@@ -145,10 +252,14 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
   useEffect(() => {
     if (!isEditMode || !materialDetailResponse?.data) return;
 
+    const detail = materialDetailResponse.data as MaterialDetailResponse & {
+      fileUrl?: string | null;
+    };
+
     form.reset({
-      title: materialDetailResponse.data.title ?? "",
-      description: materialDetailResponse.data.description ?? "",
-      fileUrl: materialDetailResponse.data.sourceUrl ?? "",
+      title: detail.title ?? "",
+      description: detail.description ?? "",
+      fileUrl: detail.sourceUrl ?? detail.fileUrl ?? "",
     });
   }, [form, isEditMode, materialDetailResponse]);
 
@@ -163,7 +274,28 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
   };
 
   const classData = classDetailResponse?.data;
-  const materialData = materialDetailResponse?.data;
+  const materialData = materialDetailResponse?.data as
+    | (MaterialDetailResponse & {
+        fileUrl?: string | null;
+        uploadedBy?: { id: string; fullName: string } | null;
+      })
+    | undefined;
+
+  const teacherName =
+    materialData?.teacher?.fullName?.trim() ||
+    materialData?.uploadedBy?.fullName?.trim() ||
+    "";
+
+  const groupedOutputs = useMemo(() => {
+    const source = outputsResponse?.data ?? [];
+    return source.reduce<Record<string, MaterialOutputItem[]>>((acc, output) => {
+      if (!acc[output.type]) {
+        acc[output.type] = [];
+      }
+      acc[output.type].push(output);
+      return acc;
+    }, {});
+  }, [outputsResponse?.data]);
 
   return (
     <section className="space-y-6">
@@ -188,9 +320,9 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
               ? `Add a new learning resource for ${classData.name} (${classData.classCode}).`
               : "Create a new learning resource for this class."}
           </p>
-          {isEditMode && materialData?.teacher?.fullName ? (
+          {isEditMode && teacherName ? (
             <p className="text-xs text-muted-foreground">
-              Teacher: {materialData.teacher.fullName}
+              Teacher: {teacherName}
             </p>
           ) : null}
         </div>
@@ -360,6 +492,128 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
             )}
           </CardContent>
         </Card>
+
+        {isEditMode ? (
+          <Card className="h-fit lg:col-span-3">
+            <CardHeader>
+              <CardTitle>AI Jobs & Outputs</CardTitle>
+              <CardDescription>
+                Polling every 4 seconds while job(s) are still queued/processing.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <Badge variant={hasPendingJobs ? "secondary" : "outline"}>
+                  {hasPendingJobs ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      AI jobs in progress
+                    </>
+                  ) : (
+                    "No active AI job"
+                  )}
+                </Badge>
+                <Badge variant="outline">
+                  Total jobs: {jobsResponse?.data?.overview?.totalJobs ?? jobsResponse?.data?.jobs?.length ?? 0}
+                </Badge>
+                <Badge variant="outline">
+                  Outputs: {jobsResponse?.data?.overview?.outputCount ?? outputsResponse?.data?.length ?? 0}
+                </Badge>
+                <Badge variant="outline">
+                  Completed: {jobsResponse?.data?.overview?.completedJobs ?? 0}
+                </Badge>
+              </div>
+
+              {isLoadingJobs ? (
+                <p className="text-sm text-muted-foreground">Loading AI jobs...</p>
+              ) : isJobsError ? (
+                <p className="text-sm text-muted-foreground">Failed to load AI jobs.</p>
+              ) : (jobsResponse?.data?.jobs?.length ?? 0) === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No AI jobs found for this material yet.
+                </p>
+              ) : (
+                <div className="grid gap-3 md:grid-cols-2">
+                  {(jobsResponse?.data?.jobs ?? []).map((job) => (
+                    <div
+                      key={job.id}
+                      className="rounded-xl border border-border/60 bg-background/60 p-4"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-medium">{job.type}</p>
+                        <Badge variant={getJobStatusBadgeVariant(job.status)}>
+                          {getJobStatusLabel(job.status)}
+                        </Badge>
+                      </div>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Created: {formatDateTimeLabel(job.createdAt)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Completed: {formatDateTimeLabel(job.completedAt)}
+                      </p>
+                      {job.lastError ? (
+                        <p className="mt-2 inline-flex items-start gap-1.5 text-xs text-destructive">
+                          <OctagonAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                          {job.lastError}
+                        </p>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="space-y-3 border-t pt-4">
+                <h3 className="text-sm font-semibold tracking-tight">
+                  Output by type
+                </h3>
+                {isLoadingOutputs ? (
+                  <p className="text-sm text-muted-foreground">
+                    Loading AI outputs...
+                  </p>
+                ) : isOutputsError ? (
+                  <p className="text-sm text-muted-foreground">
+                    Failed to load AI outputs.
+                  </p>
+                ) : (outputsResponse?.data?.length ?? 0) === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No AI outputs available yet.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {Object.entries(groupedOutputs).map(([type, items]) => (
+                      <div
+                        key={type}
+                        className="rounded-xl border border-border/60 bg-background/60 p-4"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <h4 className="text-sm font-medium">{type}</h4>
+                          <Badge variant="outline">{items.length} item(s)</Badge>
+                        </div>
+                        <div className="mt-3 space-y-2">
+                          {items.map((output) => (
+                            <div
+                              key={output.id}
+                              className="rounded-lg border border-border/50 bg-background/70 p-3"
+                            >
+                              <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <CheckCircle2 className="h-3.5 w-3.5" />
+                                {output.isPublished ? "Published" : "Draft"} •{" "}
+                                {formatDateTimeLabel(output.createdAt)}
+                              </p>
+                              <p className="mt-1 line-clamp-3 text-sm text-foreground/90">
+                                {getOutputPreview(output)}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
       </div>
     </section>
   );

@@ -19,6 +19,8 @@ import type { DashboardRole } from "@/routes/dashboard-routes";
 
 type DashboardPageContentProps = {
   role?: DashboardRole;
+  title?: string;
+  description?: string;
 };
 
 type StatCard = {
@@ -117,7 +119,11 @@ const submissionChartConfig = {
   },
 } satisfies ChartConfig;
 
-export function DashboardPageContent({ role = "TEACHER" }: DashboardPageContentProps) {
+export function DashboardPageContent({
+  role = "TEACHER",
+  title: titleOverride,
+  description: descriptionOverride,
+}: DashboardPageContentProps) {
   const {
     data: analyticsResponse,
     isLoading,
@@ -130,8 +136,8 @@ export function DashboardPageContent({ role = "TEACHER" }: DashboardPageContentP
   });
 
   const payload = analyticsResponse?.data;
-  const title = payload?.title ?? "Dashboard";
-  const description = payload?.description ?? "Overview of your activity.";
+  const title = titleOverride ?? payload?.title ?? "Dashboard";
+  const description = descriptionOverride ?? payload?.description ?? "Overview of your activity.";
   const currentRole = payload?.role ?? role;
   const model: RoleDashboardModel = {
     stats:

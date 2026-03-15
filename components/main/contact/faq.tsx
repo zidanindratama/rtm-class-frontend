@@ -6,19 +6,19 @@ import { ChevronDown } from "lucide-react";
 
 const faqs = [
   {
-    question: "What does the webhook payload look like?",
+    question: "How do we start onboarding our team?",
     answer:
-      "When a job completes, your callback endpoint receives an HTTP POST with a JSON body containing success, data, and the original job_id.",
+      "You can begin by creating admin and teacher accounts, setting up class structures, then rolling out assignments and collaboration features gradually.",
   },
   {
-    question: "Which document formats are supported?",
+    question: "Can RTM Class support both teaching and administration workflows?",
     answer:
-      "Our ingestion pipeline currently supports .pdf, .pptx, and .txt files uploaded through multipart form-data.",
+      "Yes. The platform supports classroom delivery needs and operational control through role-based modules and centralized workflows.",
   },
   {
-    question: "How long does asynchronous processing usually take?",
+    question: "Is support available for implementation planning?",
     answer:
-      "Processing time depends on file size. For documents under 20 pages, extraction and RAG inference are often completed in around 5-15 seconds.",
+      "Yes. We can help with rollout sequencing, feature adoption strategy, and team enablement based on your organizational setup.",
   },
 ];
 
@@ -40,7 +40,7 @@ export function Faq() {
             Frequently Asked Questions
           </h2>
           <p className="text-muted-foreground text-lg">
-            Technical answers to common questions about integration and API behavior.
+            Common questions about onboarding, adoption, and platform operations.
           </p>
         </motion.div>
 

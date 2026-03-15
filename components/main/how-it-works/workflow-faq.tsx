@@ -1,18 +1,18 @@
 const workflowFaq = [
   {
-    question: "Is the workflow synchronous or asynchronous?",
+    question: "Can this workflow support multiple classes at once?",
     answer:
-      "Job processing is asynchronous. The API acknowledges requests first, then generation continues in the background.",
+      "Yes. RTM Class is designed so teams can manage several classes with clear structure and repeatable processes.",
   },
   {
-    question: "Can we add review before release?",
+    question: "Does the flow include grading and feedback loops?",
     answer:
-      "Yes. The validation stage is designed so teams can review, revise, and approve before final delivery.",
+      "Yes. Assignment submission, grading, and recap workflows are integrated so evaluation stays close to delivery.",
   },
   {
-    question: "Can this fit enterprise operations?",
+    question: "Can we combine collaboration and publishing in this flow?",
     answer:
-      "Yes. The flow supports role-based lanes, monitoring, and controlled release practices for larger teams.",
+      "Yes. Class forums and blog publishing are part of the same operational ecosystem.",
   },
 ];
 
@@ -24,7 +24,7 @@ export function WorkflowFaq() {
           Workflow FAQ
         </p>
         <h2 className="mt-3 text-3xl font-bold tracking-tight md:text-5xl">
-          Practical questions about implementation flow.
+          Practical questions about day-to-day execution.
         </h2>
 
         <div className="mt-8 space-y-4">

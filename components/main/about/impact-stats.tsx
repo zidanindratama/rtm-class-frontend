@@ -3,10 +3,10 @@
 import { motion } from "framer-motion";
 
 const stats = [
-  { value: "10k+", label: "Questions Generated" },
-  { value: "< 2s", label: "Average API Response" },
-  { value: "99%", label: "Context Accuracy (RAG)" },
-  { value: "24/7", label: "Uptime Worker" },
+  { value: "3", label: "User Roles Supported" },
+  { value: "8+", label: "Core Learning Modules" },
+  { value: "1", label: "Unified Dashboard" },
+  { value: "24/7", label: "Platform Access" },
 ];
 
 export function ImpactStats() {
@@ -25,7 +25,7 @@ export function ImpactStats() {
             The Numbers.
           </h2>
           <p className="text-xl text-muted-foreground font-light">
-            Measurable outcomes driven by efficient AI infrastructure.
+            Product capabilities built to support real teaching workflows.
           </p>
         </motion.div>
 

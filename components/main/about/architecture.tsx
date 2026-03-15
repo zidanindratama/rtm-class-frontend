@@ -4,28 +4,28 @@ import { motion } from "framer-motion";
 
 const techStack = [
   {
-    name: "FastAPI",
-    role: "Core Microservice",
-    color: "text-[#009688]",
-    bg: "bg-[#009688]/10",
+    name: "Next.js",
+    role: "Frontend Experience",
+    color: "text-[#0EA5E9]",
+    bg: "bg-[#0EA5E9]/10",
   },
   {
-    name: "Redis",
-    role: "Async Queue Worker",
-    color: "text-[#DC382D]",
-    bg: "bg-[#DC382D]/10",
+    name: "NestJS",
+    role: "Core API Layer",
+    color: "text-[#E11D48]",
+    bg: "bg-[#E11D48]/10",
   },
   {
-    name: "LangChain",
-    role: "RAG & AI Orchestration",
-    color: "text-[#1C3C3C]",
-    bg: "bg-[#1C3C3C]/10 dark:bg-white/10 dark:text-white",
+    name: "PostgreSQL + Prisma",
+    role: "Data and Domain Model",
+    color: "text-[#334155]",
+    bg: "bg-[#334155]/10 dark:bg-white/10 dark:text-white",
   },
   {
-    name: "Groq",
-    role: "LLM Inference Engine",
-    color: "text-[#F55036]",
-    bg: "bg-[#F55036]/10",
+    name: "Redis + AI Services",
+    role: "Queue and AI Pipeline",
+    color: "text-[#DC2626]",
+    bg: "bg-[#DC2626]/10",
   },
 ];
 
@@ -51,7 +51,7 @@ export function Architecture() {
             transition={{ delay: 0.1 }}
             className="text-4xl md:text-6xl font-extrabold tracking-tighter mb-6"
           >
-            Engineered for <br /> Performance.
+            Engineered for <br /> Real Classroom Operations.
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, x: -20 }}
@@ -60,9 +60,8 @@ export function Architecture() {
             transition={{ delay: 0.2 }}
             className="text-lg text-muted-foreground font-light leading-relaxed mb-8"
           >
-            We combine asynchronous processing with high-speed language models
-            to deliver reliable execution without blocking user-facing
-            applications.
+            We combine a robust API layer, role-based access, and queue-backed
+            processing so learning workflows stay responsive and dependable.
           </motion.p>
         </div>
 

@@ -26,7 +26,7 @@ export function BlogsHero() {
           transition={{ duration: 0.7, delay: 0.05, ease: smoothEase }}
           className="max-w-4xl text-4xl font-bold tracking-tight text-foreground md:text-6xl"
         >
-          Notes on building AI-native education products.
+          Insights on teaching workflows, product operations, and education technology.
         </motion.h1>
         <motion.p
           initial={{ opacity: 0, y: 20 }}
@@ -35,8 +35,8 @@ export function BlogsHero() {
           transition={{ duration: 0.6, delay: 0.12, ease: smoothEase }}
           className="mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground md:text-lg"
         >
-          A minimalist collection of ideas, experiments, and practical
-          implementation stories from the RTM Class team.
+          A practical collection of product updates, workflow practices, and
+          implementation notes from the RTM Class team.
         </motion.p>
       </div>
     </section>

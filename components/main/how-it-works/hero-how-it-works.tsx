@@ -8,11 +8,11 @@ export function HeroHowItWorks() {
           Workflow
         </p>
         <h1 className="max-w-4xl text-4xl font-bold tracking-tight text-foreground md:text-6xl">
-          Understand the end-to-end delivery flow in three steps.
+          Understand the operational flow from setup to learning outcomes.
         </h1>
         <p className="mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground md:text-lg">
-          From document upload to asynchronous processing and webhook delivery,
-          this flow is designed to keep product experience fast and reliable.
+          From class preparation to assignments, collaboration, and evaluation,
+          RTM Class keeps every stage connected in one platform.
         </p>
       </div>
     </section>

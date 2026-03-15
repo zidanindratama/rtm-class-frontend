@@ -8,11 +8,11 @@ export function HeroFeatures() {
           Product Features
         </p>
         <h1 className="max-w-4xl text-4xl font-bold tracking-tight text-foreground md:text-6xl">
-          Core capabilities built for faster education workflows.
+          Core capabilities designed for complete learning operations.
         </h1>
         <p className="mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground md:text-lg">
-          Explore how RTM Class helps teams generate assessments, build
-          contextual summaries, and scale content production with confidence.
+          Explore how RTM Class supports class management, assignment delivery,
+          collaboration, publishing, and AI-assisted content workflows.
         </p>
       </div>
     </section>

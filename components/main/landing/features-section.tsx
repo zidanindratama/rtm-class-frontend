@@ -37,9 +37,8 @@ export function FeaturesSection() {
             transition={{ delay: 0.2 }}
             className="flex-1 text-lg text-muted-foreground leading-relaxed font-light"
           >
-            Three core capabilities help your team produce learning content
-            faster with reliable AI outputs, so educators can focus on
-            instruction instead of repetitive prep work.
+            RTM Class combines learning operations and content workflows so
+            teams can move faster without losing clarity, structure, or control.
           </motion.p>
         </div>
 
@@ -58,12 +57,11 @@ export function FeaturesSection() {
               </div>
               <div>
                 <h3 className="text-3xl font-bold mb-4 tracking-tight">
-                  Generate MCQ
+                  Assignment Workspace
                 </h3>
                 <p className="text-muted-foreground text-lg font-light leading-relaxed max-w-lg">
-                  Create complete multiple-choice sets with answer keys. Control
-                  question count and difficulty level dynamically through the
-                  API.
+                  Create, publish, close, and grade assignments with
+                  class-aware workflows for teachers, students, and admins.
                 </p>
               </div>
             </div>
@@ -83,11 +81,11 @@ export function FeaturesSection() {
               </div>
               <div>
                 <h3 className="text-2xl font-bold mb-3 tracking-tight">
-                  Generate Essay
+                  Class Forum
                 </h3>
                 <p className="text-muted-foreground font-light">
-                  Build open-ended prompts designed to spark critical thinking
-                  from the uploaded context.
+                  Keep learning discussions organized with threads, replies,
+                  and upvotes in each class context.
                 </p>
               </div>
             </div>
@@ -107,12 +105,11 @@ export function FeaturesSection() {
               </div>
               <div>
                 <h3 className="text-2xl md:text-3xl font-bold mb-4 tracking-tight">
-                  Smart Contextual Summary
+                  AI-Assisted Content
                 </h3>
                 <p className="text-base md:text-lg text-muted-foreground font-light leading-relaxed max-w-3xl">
-                  Turn long PDFs or slide decks into clear, compact summaries.
-                  Perfect for review packs, lesson recaps, and rapid study
-                  notes.
+                  Generate MCQ, essay prompts, and summaries from source
+                  material, then review and use outputs in your class workflow.
                 </p>
               </div>
             </div>

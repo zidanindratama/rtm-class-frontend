@@ -22,7 +22,7 @@ export function ClientLogos() {
       <div className="absolute top-0 right-0 w-32 h-full bg-gradient-to-l from-background to-transparent z-10" />
 
       <p className="text-center text-xs tracking-[0.2em] font-semibold text-muted-foreground uppercase mb-10">
-        Empowering Top Tier Institutions
+        Used Across Schools, Teams, and Learning Communities
       </p>
 
       <div className="relative flex overflow-x-hidden group">

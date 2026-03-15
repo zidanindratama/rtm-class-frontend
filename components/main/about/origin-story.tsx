@@ -29,11 +29,10 @@ export function OriginStory() {
         >
           It started with one clear challenge:{" "}
           <span className="text-muted-foreground">
-            educators were spending up to 80% of their time on administrative
-            tasks instead of teaching.
+            learning operations were spread across too many disconnected tools.
           </span>{" "}
-          We built RTM Class AI to reverse that equation and give valuable time
-          back to the people shaping the future of learning.
+          We built RTM Class to unify those workflows and give educators more
+          time for teaching, mentoring, and student growth.
         </motion.p>
       </div>
     </section>

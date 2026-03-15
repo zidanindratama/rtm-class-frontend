@@ -2,17 +2,17 @@ const governanceItems = [
   {
     title: "Permission Controls",
     description:
-      "Define who can upload, generate, review, and publish content based on role and responsibility.",
+      "Define clear responsibilities for admins, teachers, and students with role-based access across modules.",
   },
   {
-    title: "Review Workflow",
+    title: "Operational Consistency",
     description:
-      "Add approval steps before content is distributed, reducing quality risk in production environments.",
+      "Run standardized class workflows so assignment delivery, feedback loops, and publishing stay predictable.",
   },
   {
     title: "Operational Visibility",
     description:
-      "Track generation activity, output status, and revision flow so teams can identify bottlenecks quickly.",
+      "Track class activity, submission progress, and content updates to identify bottlenecks faster.",
   },
 ];
 
@@ -25,12 +25,11 @@ export function FeatureGovernance() {
             Governance
           </p>
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-foreground md:text-5xl">
-            Enterprise-ready controls for high-trust educational content.
+            Governance controls for reliable educational delivery.
           </h2>
           <p className="mt-5 text-base leading-relaxed text-muted-foreground">
-            RTM Class is designed for teams that need both speed and oversight.
-            Governance tools help maintain consistency, accountability, and
-            release quality at scale.
+            RTM Class balances execution speed with operational discipline, so
+            institutions can scale while keeping quality and accountability high.
           </p>
         </article>
 

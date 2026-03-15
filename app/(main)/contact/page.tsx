@@ -16,8 +16,8 @@ export default function ContactPage() {
       <Faq />
       <LocationHq />
       <CtaSection
-        title="Ready to Transform Education?"
-        description="Experience firsthand how RTM Class AI automates your learning materials."
+        title="Ready to Launch With RTM Class?"
+        description="Our team can help you onboard faster and align the platform with your academic operations."
         primaryBtnText="Create Account"
         primaryBtnHref="/auth/sign-up"
         secondaryBtnText="Sign In"

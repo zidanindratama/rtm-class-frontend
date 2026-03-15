@@ -5,23 +5,23 @@ import { motion } from "framer-motion";
 const milestones = [
   {
     year: "Q1 2025",
-    title: "The Concept",
-    desc: "The initial concept emerged from recurring discussions about inefficient worksheet creation workflows.",
+    title: "Initial Product Concept",
+    desc: "The first idea focused on simplifying class administration and reducing manual teaching overhead.",
   },
   {
     year: "Q3 2025",
-    title: "Microservice Architecture",
-    desc: "We built a FastAPI and Redis foundation to process large PDF workloads reliably without timeout issues.",
+    title: "Platform Foundation",
+    desc: "Core backend modules for authentication, class management, and user roles were built and stabilized.",
   },
   {
     year: "Q1 2026",
-    title: "RAG Integration",
-    desc: "LangChain and Groq integration improved answer quality with strict context-aware generation.",
+    title: "Learning Workflow Expansion",
+    desc: "Assignments, forums, blog CMS, and material workflows were integrated into a unified dashboard experience.",
   },
   {
     year: "Now",
-    title: "Public Beta",
-    desc: "API access is now open to developers and EdTech partners through webhook-based delivery.",
+    title: "Production Rollout",
+    desc: "RTM Class is now positioned as a complete platform for daily education operations and collaboration.",
   },
 ];
 

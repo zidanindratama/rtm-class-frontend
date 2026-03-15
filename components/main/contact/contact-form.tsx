@@ -20,17 +20,17 @@ export function ContactForm() {
             Start a Conversation
           </h2>
           <p className="text-muted-foreground text-lg leading-relaxed">
-            Share your goals, current stack, and timeline. We will route your
-            request to the right specialist and follow up with practical next
-            steps.
+            Share your goals, current workflow, and implementation timeline. We
+            will route your request to the right specialist and follow up with
+            practical next steps.
           </p>
           <div className="mt-8 p-6 rounded-2xl border border-border/50 bg-card">
             <p className="text-xs uppercase tracking-[0.18em] text-primary mb-2">
               Typical Requests
             </p>
             <p className="text-muted-foreground">
-              API onboarding, enterprise adoption, webhook architecture, and
-              model output quality optimization.
+              School onboarding, user-role setup, assignment rollout, and
+              workflow optimization for teachers and admins.
             </p>
           </div>
         </motion.div>

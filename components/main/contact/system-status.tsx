@@ -4,10 +4,10 @@ import { motion } from "framer-motion";
 import { CheckCircle2 } from "lucide-react";
 
 const statuses = [
-  { name: "FastAPI Gateway", status: "Operational", uptime: "99.9%" },
-  { name: "Redis Queue", status: "Operational", uptime: "100%" },
-  { name: "RAG Inference", status: "Operational", uptime: "99.8%" },
-  { name: "Webhook Service", status: "Operational", uptime: "99.9%" },
+  { name: "Frontend Experience", status: "Operational", uptime: "99.9%" },
+  { name: "Core API Service", status: "Operational", uptime: "99.9%" },
+  { name: "Database and Queue", status: "Operational", uptime: "99.8%" },
+  { name: "Auth and Access Layer", status: "Operational", uptime: "99.9%" },
 ];
 
 export function SystemStatus() {
@@ -28,7 +28,7 @@ export function SystemStatus() {
               System Status
             </h2>
             <p className="text-muted-foreground">
-              Real-time status of RTM Class AI microservices.
+              Operational overview of RTM Class platform services.
             </p>
           </div>
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/10 text-green-600 border border-green-500/20 text-sm font-semibold">

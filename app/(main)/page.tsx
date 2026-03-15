@@ -20,8 +20,8 @@ export default function Home() {
       <BenefitsSection />
       <Testimonials />
       <CtaSection
-        title="Ready to Transform Your Workflow?"
-        description="Create better learning materials faster with AI-powered workflows. No credit card required to get started."
+        title="Ready to Run Your Class in One Platform?"
+        description="Plan lessons, publish assignments, run discussions, and manage learning content with a faster, cleaner workflow."
         primaryBtnText="Get Started for Free"
         primaryBtnHref="/auth/sign-up"
         secondaryBtnText="Sign In"

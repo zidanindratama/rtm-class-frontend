@@ -17,7 +17,7 @@ export function InteractiveDemo() {
           transition={{ duration: 0.8, ease: smoothEase }}
           className="text-3xl md:text-5xl font-bold tracking-tighter mb-16 text-center"
         >
-          Developer Experience First.
+          Built for Daily Teaching Operations.
         </motion.h2>
 
         <motion.div
@@ -34,7 +34,7 @@ export function InteractiveDemo() {
               <div className="w-3 h-3 rounded-full bg-[#27C93F] border border-white/10" />
             </div>
             <div className="text-[11px] text-white/50 font-mono tracking-widest uppercase font-medium bg-white/5 px-3 py-1 rounded-md border border-white/5">
-              POST /api/mcq
+              Class Workflow Snapshot
             </div>
             <div className="w-20" />{" "}
           </div>
@@ -43,7 +43,7 @@ export function InteractiveDemo() {
             <div className="flex-1 font-mono text-[13px] md:text-sm leading-relaxed">
               <div className="text-white/40 mb-4 flex items-center gap-2 text-xs uppercase tracking-wider font-semibold">
                 <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                Request payload
+                Teacher action
               </div>
               <motion.div
                 initial={{ opacity: 0 }}
@@ -56,27 +56,23 @@ export function InteractiveDemo() {
                     <span className="text-zinc-500">{`{\n`}</span>
                     <span className="text-blue-300"> "user_id"</span>
                     <span className="text-zinc-500">{`: `}</span>
-                    <span className="text-green-300">"usr_9821x"</span>
+                    <span className="text-green-300">"teacher_102"</span>
                     <span className="text-zinc-500">{`,\n`}</span>
-                    <span className="text-blue-300"> "file"</span>
+                    <span className="text-blue-300"> "class_id"</span>
                     <span className="text-zinc-500">{`: `}</span>
-                    <span className="text-green-300">
-                      "biology_chapter_1_material.pdf"
-                    </span>
+                    <span className="text-green-300">"class_xi_science_1"</span>
                     <span className="text-zinc-500">{`,\n`}</span>
-                    <span className="text-blue-300"> "mcq_count"</span>
+                    <span className="text-blue-300"> "action"</span>
                     <span className="text-zinc-500">{`: `}</span>
-                    <span className="text-orange-300">10</span>
+                    <span className="text-green-300">"publish_assignment"</span>
                     <span className="text-zinc-500">{`,\n`}</span>
-                    <span className="text-blue-300"> "mcp_enabled"</span>
+                    <span className="text-blue-300"> "assignment_type"</span>
                     <span className="text-zinc-500">{`: `}</span>
-                    <span className="text-purple-400">true</span>
+                    <span className="text-green-300">"QUIZ_MCQ"</span>
                     <span className="text-zinc-500">{`,\n`}</span>
-                    <span className="text-blue-300"> "callback_url"</span>
+                    <span className="text-blue-300"> "due_at"</span>
                     <span className="text-zinc-500">{`: `}</span>
-                    <span className="text-green-300">
-                      "https://your-app.com/webhook"
-                    </span>
+                    <span className="text-green-300">"2026-03-20T09:00:00Z"</span>
                     <span className="text-zinc-500">{`\n}`}</span>
                   </code>
                 </pre>
@@ -88,7 +84,7 @@ export function InteractiveDemo() {
             <div className="flex-1 font-mono text-[13px] md:text-sm leading-relaxed">
               <div className="text-white/40 mb-4 flex items-center gap-2 text-xs uppercase tracking-wider font-semibold">
                 <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                Immediate response
+                Platform result
               </div>
               <motion.div
                 initial={{ opacity: 0, x: 10, filter: "blur(4px)" }}
@@ -103,20 +99,20 @@ export function InteractiveDemo() {
                     <span className="text-zinc-500">{`: `}</span>
                     <span className="text-purple-400">true</span>
                     <span className="text-zinc-500">{`,\n`}</span>
-                    <span className="text-blue-300"> "data"</span>
+                    <span className="text-blue-300"> "summary"</span>
                     <span className="text-zinc-500">{`: {\n\t`}</span>
-                    <span className="text-blue-300"> "job_id"</span>
-                    <span className="text-zinc-500">{`: `}</span>
-                    <span className="text-green-300">"job_rtm_9x8f2a..."</span>
-                    <span className="text-zinc-500">{`,\n\t`}</span>
                     <span className="text-blue-300"> "status"</span>
                     <span className="text-zinc-500">{`: `}</span>
-                    <span className="text-green-300">"accepted"</span>
+                    <span className="text-green-300">"published"</span>
+                    <span className="text-zinc-500">{`,\n\t`}</span>
+                    <span className="text-blue-300"> "submissions"</span>
+                    <span className="text-zinc-500">{`: `}</span>
+                    <span className="text-orange-300">0</span>
                     <span className="text-zinc-500">{`\n  },\n`}</span>
                     <span className="text-blue-300"> "message"</span>
                     <span className="text-zinc-500">{`: `}</span>
                     <span className="text-green-300">
-                      "Processing in background."
+                      "Assignment is now visible to students."
                     </span>
                     <span className="text-zinc-500">{`\n}`}</span>
                   </code>

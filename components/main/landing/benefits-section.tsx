@@ -5,18 +5,18 @@ import { motion } from "framer-motion";
 const benefits = [
   {
     id: "01",
-    title: "Built to Scale",
-    desc: "Redis Queue and FastAPI architecture handle thousands of concurrent documents with stable throughput.",
+    title: "Operational Clarity",
+    desc: "Bring classes, assignments, forums, materials, and blogs into one coordinated teaching platform.",
   },
   {
     id: "02",
-    title: "Reliable RAG Accuracy",
-    desc: "Minimize hallucinations with retrieval grounded in the exact PDF and PPTX context you provide.",
+    title: "Role-Based Collaboration",
+    desc: "Admins, teachers, and students get focused experiences with permissions that match their responsibilities.",
   },
   {
     id: "03",
-    title: "Teacher-Centered Productivity",
-    desc: "Reduce administrative prep and let educators spend more time teaching, coaching, and mentoring students.",
+    title: "Faster Content Throughput",
+    desc: "Reduce repetitive prep work with reusable workflows and AI-assisted generation for assessment and summary tasks.",
   },
 ];
 
@@ -44,10 +44,10 @@ export function BenefitsSection() {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
-              className="text-xl text-muted-foreground font-light leading-relaxed max-w-md"
-            >
-              More than a generic AI wrapper, RTM Class powers modern EdTech
-              workflows with speed, control, and production-grade reliability.
+            className="text-xl text-muted-foreground font-light leading-relaxed max-w-md"
+          >
+              RTM Class is designed as a complete learning operations platform
+              that helps teams move quickly while keeping quality consistent.
             </motion.p>
           </div>
         </div>

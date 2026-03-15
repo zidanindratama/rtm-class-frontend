@@ -36,8 +36,8 @@ export function DirectConnect() {
             Direct Connect
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl">
-            Reach us through the channel that fits your workflow. We keep
-            communication fast, clear, and technical.
+            Reach us through the channel that fits your process. We keep
+            communication clear, responsive, and solution-oriented.
           </p>
         </motion.div>
 

@@ -1,27 +1,27 @@
 const workflow = [
   {
     step: "01",
-    title: "Upload and Configure",
+    title: "Initialize Class Context",
     description:
-      "Upload PDF, PPTX, or TXT files, then choose output mode, question type, and quality profile.",
+      "Set up class details, members, and role access so your team can run a consistent learning flow.",
   },
   {
     step: "02",
-    title: "Asynchronous Processing",
+    title: "Deliver Learning Activities",
     description:
-      "RTM Class processes tasks in the background so your UI remains responsive while heavy generation runs.",
+      "Publish assignments, materials, forum threads, and blog updates through dedicated role-aware interfaces.",
   },
   {
     step: "03",
-    title: "Review and Approve",
+    title: "Engage and Evaluate",
     description:
-      "Generated outputs pass through a review layer where teams can edit, validate, and approve content.",
+      "Track student submissions, score results, and class participation while keeping discussion and feedback centralized.",
   },
   {
     step: "04",
-    title: "Deliver to Systems",
+    title: "Scale With AI Assistance",
     description:
-      "Final results are pushed to your connected destination through callbacks or internal workflows.",
+      "Generate supporting learning content from source material to speed up preparation cycles across classes.",
   },
 ];
 
@@ -37,8 +37,8 @@ export function FeatureWorkflow() {
             Built for real operations, not single-click demos.
           </h2>
           <p className="mt-4 max-w-2xl text-base text-muted-foreground">
-            Each stage is designed for high-throughput teams that need control,
-            traceability, and repeatable output quality.
+            Each stage is designed so schools can run daily operations with
+            clearer ownership, faster execution, and measurable outcomes.
           </p>
         </div>
 

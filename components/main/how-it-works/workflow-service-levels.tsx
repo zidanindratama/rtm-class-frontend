@@ -1,21 +1,21 @@
 const serviceLevels = [
   {
-    metric: "202 Accepted",
-    label: "Immediate API acknowledgment",
+    metric: "3 Roles",
+    label: "Admin, Teacher, Student experience",
     detail:
-      "The system acknowledges intake quickly while background workers continue processing.",
+      "Each role gets a focused workspace so operations stay efficient and responsibilities stay clear.",
   },
   {
-    metric: "< 24h",
-    label: "Support response target",
+    metric: "1 Workspace",
+    label: "Unified operational flow",
     detail:
-      "Operational and integration questions are routed to the support lane with a defined response window.",
+      "Class setup, assignments, discussions, publishing, and profile operations live in one connected platform.",
   },
   {
-    metric: "5-15s",
-    label: "Typical short-job processing window",
+    metric: "Continuous",
+    label: "Iteration-ready delivery cycle",
     detail:
-      "For lighter source files, output can be generated and delivered in near-real-time conditions.",
+      "Teams can continuously review outcomes, apply feedback, and improve learning delivery over time.",
   },
 ];
 
@@ -27,7 +27,7 @@ export function WorkflowServiceLevels() {
           Service Behavior
         </p>
         <h2 className="mt-3 text-3xl font-bold tracking-tight text-foreground md:text-5xl">
-          Clear expectations for performance and delivery.
+          Clear expectations for operational execution.
         </h2>
 
         <div className="mt-8 grid gap-5 md:grid-cols-3">

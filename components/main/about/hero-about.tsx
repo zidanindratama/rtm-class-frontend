@@ -60,10 +60,10 @@ export function HeroAbout() {
           variants={item}
           className="text-5xl md:text-7xl lg:text-[5.5rem] font-extrabold tracking-tight text-foreground leading-[1.05] mb-8"
         >
-          Empowering Minds <br className="hidden md:block" />
-          Through{" "}
+          Building Better <br className="hidden md:block" />
+          Learning{" "}
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-blue-400 to-primary bg-[length:200%_auto] animate-gradient pb-2">
-            Intelligent Tech.
+            Operations.
           </span>
         </motion.h1>
 
@@ -71,8 +71,8 @@ export function HeroAbout() {
           variants={item}
           className="text-lg md:text-2xl text-muted-foreground max-w-3xl mb-14 font-light leading-relaxed"
         >
-          We combine advanced AI with world-class architecture to build faster,
-          smarter, and more human-centered learning experiences.
+          RTM Class was built to help schools and educators run classes,
+          assignments, discussions, and content workflows more effectively.
         </motion.p>
       </motion.div>
 

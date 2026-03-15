@@ -4,22 +4,22 @@ import { motion } from "framer-motion";
 
 const reviews = [
   {
-    name: "Dr. Benjamin Carter",
-    role: "Professor of Computer Science",
+    name: "Nadia Pratama",
+    role: "Curriculum Lead",
     content:
-      "The rollout was exceptional. I uploaded a 50-page module and received a complete question bank in under ten seconds.",
+      "Our teaching team now manages classes, assignments, and discussions in one place. Coordination is much faster.",
   },
   {
-    name: "Sarah Mitchell",
-    role: "High School Teacher",
+    name: "Arif Rahman",
+    role: "Senior Teacher",
     content:
-      "Webhook delivery made integration easy for our IT team. We connected it directly into our school LMS with minimal effort.",
+      "The assignment and grading flow is clear for both teachers and students. It reduced manual follow-up significantly.",
   },
   {
-    name: "Andrew Parker",
-    role: "CTO, EdTech Startup",
+    name: "Dewi Lestari",
+    role: "School Operations Manager",
     content:
-      "We tried building this in-house first and the cost escalated quickly. Moving to RTM Class saved months of engineering time.",
+      "Role-based access and centralized workflows helped us standardize operations across multiple classes.",
   },
 ];
 
@@ -39,7 +39,7 @@ export function Testimonials() {
           className="text-center mb-20"
         >
           <h2 className="text-4xl md:text-6xl font-extrabold tracking-tighter mb-4">
-            Trusted by Experts.
+            Trusted by Education Teams.
           </h2>
         </motion.div>
 

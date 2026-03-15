@@ -1,18 +1,18 @@
 const faqItems = [
   {
-    question: "Can we customize generation rules for different subjects?",
+    question: "Can RTM Class support multiple roles in one institution?",
     answer:
-      "Yes. Prompt templates and output constraints can be configured per subject or team workflow.",
+      "Yes. The platform supports role-based workflows for admins, teachers, and students with tailored access paths.",
   },
   {
-    question: "Does RTM Class support review before publication?",
+    question: "Can we manage classes and assignments in one system?",
     answer:
-      "Yes. You can route generated content through reviewers before it is finalized or distributed.",
+      "Yes. Class setup, assignment operations, submissions, grading, and progress tracking are handled in one connected dashboard flow.",
   },
   {
-    question: "Can we use this for both worksheets and summaries?",
+    question: "Does it include collaboration and publishing features?",
     answer:
-      "Yes. The platform supports assessment generation and contextual summarization in one workflow.",
+      "Yes. RTM Class includes class forums, public blog publishing, and legal content pages for institutional communication.",
   },
 ];
 
@@ -24,7 +24,7 @@ export function FeatureFaq() {
           Feature FAQ
         </p>
         <h2 className="mt-3 text-3xl font-bold tracking-tight md:text-5xl">
-          Common questions from product and curriculum teams.
+          Common questions from schools and implementation teams.
         </h2>
 
         <div className="mt-8 space-y-4">

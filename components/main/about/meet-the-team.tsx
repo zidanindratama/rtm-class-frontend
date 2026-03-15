@@ -42,7 +42,7 @@ export function MeetTheTeam() {
           className="text-center mb-20"
         >
           <p className="text-primary font-mono text-sm tracking-widest uppercase mb-4">
-            laponGacor.ts
+            Team RTM Class
           </p>
           <h2 className="text-4xl md:text-6xl font-extrabold tracking-tighter mb-6">
             Meet The Brains.

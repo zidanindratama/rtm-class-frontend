@@ -6,18 +6,18 @@ import { motion, useScroll, useTransform } from "framer-motion";
 const steps = [
   {
     step: "01",
-    title: "Upload Material",
-    desc: "Send your files (PDF, PPTX, TXT) via multipart form-data.",
+    title: "Set Up Class Structure",
+    desc: "Create classes, manage members, and define your teaching context before publishing activities.",
   },
   {
     step: "02",
-    title: "Async AI Processing",
-    desc: "Receive a fast 202 Accepted response while RAG workers process in the background.",
+    title: "Publish Learning Activities",
+    desc: "Add materials, create assignments, and open class forums so students can learn and collaborate.",
   },
   {
     step: "03",
-    title: "Webhook Delivery",
-    desc: "Generated questions and summaries are delivered directly to your callback URL.",
+    title: "Track, Review, and Improve",
+    desc: "Monitor submissions, grade outcomes, and iterate content quality with AI-assisted workflows.",
   },
 ];
 
@@ -46,7 +46,7 @@ export function HowItWorks() {
             Seamless Workflow.
           </h2>
           <p className="text-xl text-muted-foreground font-light">
-            Our asynchronous architecture keeps your UI responsive at every step.
+            A practical learning workflow from setup to delivery and feedback.
           </p>
         </motion.div>
 

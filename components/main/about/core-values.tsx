@@ -7,17 +7,17 @@ const values = [
   {
     icon: Zap,
     title: "Speed",
-    desc: "Redis Queue architecture keeps latency low and delivers learning outputs in seconds.",
+    desc: "Design workflow yang ringkas membantu tim bergerak cepat dari perencanaan kelas sampai evaluasi hasil belajar.",
   },
   {
     icon: ShieldCheck,
-    title: "Accuracy",
-    desc: "LangChain and Groq power retrieval-augmented generation grounded in your source material.",
+    title: "Reliability",
+    desc: "Platform dirancang stabil untuk kebutuhan operasional harian sekolah, guru, dan siswa.",
   },
   {
     icon: Maximize,
     title: "Scalability",
-    desc: "Built to serve high-volume institutional demand through seamless API integrations.",
+    desc: "Arsitektur modular memudahkan ekspansi dari satu kelas ke banyak kelas tanpa mengubah alur utama.",
   },
 ];
 

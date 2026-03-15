@@ -18,8 +18,8 @@ export default function AboutPage() {
       <Milestones />
       <ImpactStats />
       <CtaSection
-        title="Ready to Transform Education?"
-        description="Experience firsthand how RTM Class AI automates your learning materials. Upload your document and let our AI do the heavy lifting."
+        title="Ready to Build Better Learning Operations?"
+        description="Bring your team into a platform designed for class management, assignments, forums, blogs, and AI-assisted content workflows."
         primaryBtnText="Create Account"
         primaryBtnHref="/auth/sign-up"
         secondaryBtnText="Sign In"

@@ -55,14 +55,14 @@ export function HeroSection() {
         <h1 className="text-6xl md:text-8xl font-extrabold tracking-tighter text-foreground mb-8 leading-[1.05] flex flex-col items-center">
           <span className="overflow-hidden block pb-2">
             <motion.span variants={revealVariants} className="block">
-              Generate Learning
+              Manage Modern
             </motion.span>
           </span>
           <span className="overflow-hidden block pb-2">
             <motion.span variants={revealVariants} className="block">
-              Materials in{" "}
+              Classroom Workflows{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-blue-400 to-primary bg-[length:200%_auto] animate-gradient">
-                Seconds.
+                End-to-End.
               </span>
             </motion.span>
           </span>
@@ -74,9 +74,8 @@ export function HeroSection() {
           transition={{ duration: 0.8, delay: 0.6, ease: "easeOut" }}
           className="text-lg md:text-2xl text-muted-foreground max-w-2xl mb-12 font-light tracking-wide leading-relaxed"
         >
-          Upload your source material once, then let AI generate high-quality
-          multiple-choice questions, essay prompts, and concise summaries in
-          seconds.
+          RTM Class unifies class management, assignments, forums, materials,
+          blogs, and AI-assisted content generation in one streamlined platform.
         </motion.p>
 
         <motion.div
@@ -93,7 +92,7 @@ export function HeroSection() {
               className="relative h-16 px-10 rounded-full text-lg font-semibold bg-foreground text-background hover:bg-foreground/90 transition-all duration-300"
             >
               <Link href="/auth/sign-up">
-                Start Generating Free
+                Start Using RTM Class
                 <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Link>
             </Button>

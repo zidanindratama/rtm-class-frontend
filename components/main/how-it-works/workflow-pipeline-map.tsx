@@ -1,33 +1,33 @@
 const pipelineSteps = [
   {
     id: "A1",
-    title: "Ingestion Gate",
+    title: "Class Setup",
     description:
-      "Source files are uploaded and normalized before entering generation jobs.",
+      "Create class context, define members, and prepare learning structure.",
   },
   {
     id: "B2",
-    title: "Instruction Layer",
+    title: "Content Preparation",
     description:
-      "Teams apply templates, output mode, difficulty targets, and curriculum scope.",
+      "Add materials, define assignment scope, and set learning objectives.",
   },
   {
     id: "C3",
-    title: "Generation Engine",
+    title: "Learning Delivery",
     description:
-      "Asynchronous workers execute retrieval and generation while UI stays responsive.",
+      "Publish assignments and enable forum discussions so students can engage actively.",
   },
   {
     id: "D4",
-    title: "Validation Pass",
+    title: "Evaluation Loop",
     description:
-      "Outputs are checked for structure, clarity, and quality before release.",
+      "Review submissions, apply grading, and capture feedback for improvement cycles.",
   },
   {
     id: "E5",
-    title: "Delivery Channel",
+    title: "Scale and Optimization",
     description:
-      "Approved results are delivered to callback endpoints or internal distribution flows.",
+      "Use analytics and AI-assisted generation to refine delivery across classes over time.",
   },
 ];
 
@@ -39,7 +39,7 @@ export function WorkflowPipelineMap() {
           Pipeline Map
         </p>
         <h2 className="mt-3 text-3xl font-bold tracking-tight text-foreground md:text-5xl">
-          A staged system designed for reliability at scale.
+          A staged operating model designed for clarity and consistency.
         </h2>
 
         <div className="mt-8 grid gap-4 md:grid-cols-5">

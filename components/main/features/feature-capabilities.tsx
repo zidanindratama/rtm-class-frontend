@@ -3,52 +3,64 @@ import {
   FileCheck2,
   FileQuestion,
   FileText,
+  LayoutDashboard,
   Sparkles,
 } from "lucide-react";
 
 const capabilities = [
   {
-    icon: FileQuestion,
-    title: "Assessment Generator",
+    icon: LayoutDashboard,
+    title: "Role-Based Dashboard",
     description:
-      "Generate MCQ and essay sets from source documents with configurable volume, difficulty, and answer-key format.",
+      "Separate experiences for admins, teachers, and students keep each workflow focused and easier to operate.",
     points: [
-      "Difficulty tiers per batch",
-      "Automatic answer key output",
-      "Curriculum-aligned prompt templates",
+      "Admin, teacher, and student navigation",
+      "Access control by role",
+      "Centralized profile and account context",
     ],
   },
   {
-    icon: FileText,
-    title: "Contextual Summarization",
+    icon: FileQuestion,
+    title: "Assignment Lifecycle",
     description:
-      "Convert long PDF or slide content into concise teaching summaries with controllable length and tone.",
+      "Run complete assignment operations from drafting and publishing to submission review and grading.",
     points: [
-      "Short, medium, and extended summary modes",
-      "Topic-focused extraction prompts",
-      "Classroom-ready recap structure",
+      "Draft, publish, close, and delete actions",
+      "Submission and grading workflow",
+      "Class gradebook and progress recap",
     ],
   },
   {
     icon: Blocks,
-    title: "Modular Prompt System",
+    title: "Class Collaboration Stack",
     description:
-      "Build reusable prompt modules so teams can standardize output quality across departments and grade levels.",
+      "Keep communication and content activity connected to each class context.",
     points: [
-      "Reusable prompt presets",
-      "Role-based prompt editing",
-      "Consistent output formatting",
+      "Class forums with replies and upvotes",
+      "Members management per class",
+      "Shared materials and class detail pages",
+    ],
+  },
+  {
+    icon: FileText,
+    title: "Publishing and Knowledge Flow",
+    description:
+      "Publish institutional content through blog and legal pages to support communication and governance.",
+    points: [
+      "Public blog listing and article detail",
+      "Admin blog CMS operations",
+      "Structured legal and policy pages",
     ],
   },
   {
     icon: FileCheck2,
-    title: "Quality Control Layer",
+    title: "AI-Assisted Content Pipeline",
     description:
-      "Run output checks before publishing to reduce factual drift and maintain instructional consistency.",
+      "Generate MCQ, essay prompts, and summaries from learning material to accelerate content preparation.",
     points: [
-      "Rubric-based quality checks",
-      "Fact-sensitive content flags",
-      "Review and approval workflow",
+      "Multiple output modes from one material",
+      "Queue-based processing architecture",
+      "Output storage and status tracking",
     ],
   },
 ];

@@ -1,16 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Loader2, OctagonAlert } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useGetData } from "@/hooks/use-get-data";
+import { usePatchData } from "@/hooks/use-patch-data";
 import { usePostData } from "@/hooks/use-post-data";
 import { UploadField } from "@/components/globals/upload/upload-field";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import {
   Card,
   CardContent,
@@ -28,14 +36,24 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { ClassDetailResponse } from "@/components/dashboard/classes/class-types";
 import { APISingleResponse } from "@/types/api-response";
 import {
+  MaterialAiJob,
+  MaterialJobsResponse,
   CreateMaterialPayload,
   MaterialDetailResponse,
   MaterialCreateResponse,
+  MaterialOutputItem,
 } from "./material-types";
 
 const createMaterialSchema = z.object({
@@ -49,6 +67,20 @@ type CreateMaterialValues = z.infer<typeof createMaterialSchema>;
 type MaterialFormPageProps =
   | { mode: "create"; classId: string; materialId?: never }
   | { mode: "edit"; classId: string; materialId: string };
+
+type EditableMcqQuestion = {
+  id: string;
+  question: string;
+  options: [string, string, string, string];
+  correctOption: "A" | "B" | "C" | "D";
+  explanation: string;
+};
+
+type EditableEssayQuestion = {
+  id: string;
+  question: string;
+  expectedPoints: string;
+};
 
 function toOptionalTrimmed(value: string | undefined) {
   const nextValue = value?.trim();
@@ -82,12 +114,186 @@ function inferMimeTypeFromFileUrl(fileUrl: string) {
   return undefined;
 }
 
+function formatDateTimeLabel(iso?: string | null) {
+  if (!iso) return "-";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "-";
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+
+function getJobStatusBadgeVariant(status: MaterialAiJob["status"]) {
+  if (status === "succeeded") return "default" as const;
+  if (status === "failed_processing" || status === "failed_delivery") {
+    return "destructive" as const;
+  }
+  if (status === "processing") return "secondary" as const;
+  return "outline" as const;
+}
+
+function getJobStatusLabel(status: MaterialAiJob["status"]) {
+  if (status === "accepted") return "Queued";
+  if (status === "processing") return "Processing";
+  if (status === "succeeded") return "Succeeded";
+  if (status === "failed_processing") return "Failed (Processing)";
+  if (status === "failed_delivery") return "Failed (Delivery)";
+  return status;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function getOutputPreview(output: MaterialOutputItem) {
+  const content = asRecord(output.content);
+  if (!content) return "No content preview available.";
+
+  if (output.type === "SUMMARY") {
+    const summary = asRecord(content.summary);
+    const title = typeof summary?.title === "string" ? summary.title : null;
+    const overview =
+      typeof summary?.overview === "string" ? summary.overview : null;
+    if (title && overview) return `${title} - ${overview}`;
+    if (overview) return overview;
+    if (title) return title;
+  }
+
+  if (output.type === "MCQ") {
+    const quiz = asRecord(content.mcq_quiz);
+    const questions = Array.isArray(quiz?.questions) ? quiz.questions : [];
+    return `${questions.length} MCQ question(s) generated.`;
+  }
+
+  if (output.type === "ESSAY") {
+    const quiz = asRecord(content.essay_quiz);
+    const questions = Array.isArray(quiz?.questions) ? quiz.questions : [];
+    return `${questions.length} essay question(s) generated.`;
+  }
+
+  const raw = JSON.stringify(content);
+  return raw.length > 200 ? `${raw.slice(0, 200)}...` : raw;
+}
+
+function parseMcqQuestions(output: MaterialOutputItem): EditableMcqQuestion[] {
+  const root = asRecord(output.editedContent ?? output.content);
+  const quiz = asRecord(root?.mcq_quiz);
+  const questions = Array.isArray(quiz?.questions) ? quiz.questions : [];
+
+  const parsed = questions
+    .map((item, index) => {
+      const row = asRecord(item);
+      if (!row) return null;
+
+      const question = typeof row.question === "string" ? row.question : "";
+      const optionsRaw = Array.isArray(row.options) ? row.options : [];
+      const options = optionsRaw
+        .filter((option): option is string => typeof option === "string")
+        .slice(0, 4);
+
+      if (options.length !== 4) return null;
+
+      const correctAnswer =
+        typeof row.correct_answer === "string" ? row.correct_answer : "";
+      const optionIndex = options.findIndex(
+        (option) => option.trim().toLowerCase() === correctAnswer.trim().toLowerCase(),
+      );
+      const correctOption =
+        optionIndex === 0
+          ? "A"
+          : optionIndex === 1
+            ? "B"
+            : optionIndex === 2
+              ? "C"
+              : optionIndex === 3
+                ? "D"
+                : "A";
+
+      return {
+        id: `mcq-${index + 1}`,
+        question,
+        options: [options[0] ?? "", options[1] ?? "", options[2] ?? "", options[3] ?? ""],
+        correctOption,
+        explanation:
+          typeof row.explanation === "string"
+            ? row.explanation
+            : "",
+      } as EditableMcqQuestion;
+    })
+    .filter((item): item is EditableMcqQuestion => Boolean(item));
+
+  if (parsed.length > 0) return parsed;
+
+  return [
+    {
+      id: "mcq-1",
+      question: "",
+      options: ["", "", "", ""],
+      correctOption: "A",
+      explanation: "",
+    },
+  ];
+}
+
+function parseEssayQuestions(output: MaterialOutputItem): EditableEssayQuestion[] {
+  const root = asRecord(output.editedContent ?? output.content);
+  const quiz = asRecord(root?.essay_quiz);
+  const questions = Array.isArray(quiz?.questions) ? quiz.questions : [];
+
+  const parsed = questions
+    .map((item, index) => {
+      const row = asRecord(item);
+      if (!row) return null;
+
+      return {
+        id: `essay-${index + 1}`,
+        question: typeof row.question === "string" ? row.question : "",
+        expectedPoints:
+          typeof row.expected_points === "string" ? row.expected_points : "",
+      } as EditableEssayQuestion;
+    })
+    .filter((item): item is EditableEssayQuestion => Boolean(item));
+
+  if (parsed.length > 0) return parsed;
+
+  return [
+    {
+      id: "essay-1",
+      question: "",
+      expectedPoints: "",
+    },
+  ];
+}
+
+function isMcqQuestionValid(question: EditableMcqQuestion) {
+  const hasQuestion = question.question.trim().length > 0;
+  const hasAllOptions = question.options.every((option) => option.trim().length > 0);
+  return hasQuestion && hasAllOptions;
+}
+
+function isEssayQuestionValid(question: EditableEssayQuestion) {
+  const hasQuestion = question.question.trim().length > 0;
+  const hasExpectedPoints = question.expectedPoints.trim().length > 0;
+  return hasQuestion && hasExpectedPoints;
+}
+
 export function MaterialFormPage(props: MaterialFormPageProps) {
   const { classId } = props;
   const isEditMode = props.mode === "edit";
   const materialId = isEditMode ? props.materialId : undefined;
   const router = useRouter();
   const backHref = `/dashboard/my-class/${classId}/materials`;
+  const [editingOutputId, setEditingOutputId] = useState<string | null>(null);
+  const [editingOutputType, setEditingOutputType] = useState<"MCQ" | "ESSAY" | null>(null);
+  const [editedMcqQuestions, setEditedMcqQuestions] = useState<EditableMcqQuestion[]>([]);
+  const [editedEssayQuestions, setEditedEssayQuestions] = useState<EditableEssayQuestion[]>([]);
+  const [savingOutputId, setSavingOutputId] = useState<string | null>(null);
+  const [publishingOutputId, setPublishingOutputId] = useState<string | null>(null);
+  const [creatingAssignmentOutputId, setCreatingAssignmentOutputId] = useState<string | null>(
+    null,
+  );
 
   const {
     data: classDetailResponse,
@@ -112,6 +318,46 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
     errorMessage: "Failed to load material detail.",
   });
 
+  const {
+    data: jobsResponse,
+    isLoading: isLoadingJobs,
+    isError: isJobsError,
+  } = useGetData<APISingleResponse<MaterialJobsResponse>>({
+    key: ["material-ai-jobs", materialId],
+    endpoint: `/materials/${materialId}/jobs`,
+    extractData: false,
+    enabled: isEditMode && Boolean(materialId),
+    params: {
+      includeOverview: true,
+    },
+    errorMessage: "Failed to load AI jobs.",
+    options: {
+      refetchInterval: 4000,
+    },
+  });
+
+  const hasPendingJobs =
+    jobsResponse?.data?.overview?.hasPendingJobs ??
+    jobsResponse?.data?.jobs?.some(
+      (job) => job.status === "accepted" || job.status === "processing",
+    ) ??
+    false;
+
+  const {
+    data: outputsResponse,
+    isLoading: isLoadingOutputs,
+    isError: isOutputsError,
+  } = useGetData<APISingleResponse<MaterialOutputItem[]>>({
+    key: ["material-ai-outputs", materialId],
+    endpoint: `/materials/${materialId}/outputs`,
+    extractData: false,
+    enabled: isEditMode && Boolean(materialId),
+    errorMessage: "Failed to load AI outputs.",
+    options: {
+      refetchInterval: hasPendingJobs ? 4000 : false,
+    },
+  });
+
   const createMaterialMutation = usePostData<
     APISingleResponse<MaterialCreateResponse>,
     CreateMaterialPayload
@@ -133,6 +379,87 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
     },
   });
 
+  const editOutputMutation = usePatchData<
+    APISingleResponse<MaterialOutputItem>,
+    { outputId: string; editedContent: Record<string, unknown> }
+  >({
+    key: ["material-ai-output-edit", materialId],
+    endpoint: (variables) => `/materials/${materialId}/outputs/${variables.outputId}`,
+    extractData: false,
+    successMessage: "AI output content updated.",
+    errorMessage: "Failed to update AI output content.",
+    invalidateKeys: [
+      ["material-ai-outputs", materialId],
+      ["material-ai-jobs", materialId],
+    ],
+    options: {
+      onSuccess: () => {
+        setSavingOutputId(null);
+        setEditingOutputId(null);
+        setEditingOutputType(null);
+        setEditedMcqQuestions([]);
+        setEditedEssayQuestions([]);
+      },
+      onError: () => {
+        setSavingOutputId(null);
+      },
+    },
+  });
+
+  const publishOutputMutation = usePatchData<
+    APISingleResponse<MaterialOutputItem>,
+    { outputId: string; publish: boolean }
+  >({
+    key: ["material-ai-output-publish", materialId],
+    endpoint: (variables) =>
+      `/materials/${materialId}/outputs/${variables.outputId}/publish`,
+    extractData: false,
+    successMessage: (response) =>
+      response.message || "AI output publish status updated.",
+    errorMessage: "Failed to update AI output publish status.",
+    invalidateKeys: [
+      ["material-ai-outputs", materialId],
+      ["material-ai-jobs", materialId],
+    ],
+    options: {
+      onSuccess: () => {
+        setPublishingOutputId(null);
+      },
+      onError: () => {
+        setPublishingOutputId(null);
+      },
+    },
+  });
+
+  const createAssignmentFromOutputMutation = usePostData<
+    APISingleResponse<{ id: string }>,
+    { outputId: string; status?: "DRAFT" | "PUBLISHED" | "CLOSED" }
+  >({
+    key: ["material-ai-output-create-assignment", materialId],
+    endpoint: (variables) =>
+      `/materials/${materialId}/outputs/${variables.outputId}/create-assignment`,
+    extractData: false,
+    successMessage: "Assignment created from AI output.",
+    errorMessage: "Failed to create assignment from AI output.",
+    invalidateKeys: [
+      ["assignments", "list", classId],
+      ["class-assignments", "class", classId],
+      ["material-ai-outputs", materialId],
+    ],
+    options: {
+      onSuccess: (response) => {
+        setCreatingAssignmentOutputId(null);
+        const assignmentId = response?.data?.id;
+        if (assignmentId) {
+          router.push(`/dashboard/my-class/${classId}/assignments/${assignmentId}`);
+        }
+      },
+      onError: () => {
+        setCreatingAssignmentOutputId(null);
+      },
+    },
+  });
+
   const form = useForm<CreateMaterialValues>({
     resolver: zodResolver(createMaterialSchema),
     defaultValues: {
@@ -145,10 +472,14 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
   useEffect(() => {
     if (!isEditMode || !materialDetailResponse?.data) return;
 
+    const detail = materialDetailResponse.data as MaterialDetailResponse & {
+      fileUrl?: string | null;
+    };
+
     form.reset({
-      title: materialDetailResponse.data.title ?? "",
-      description: materialDetailResponse.data.description ?? "",
-      fileUrl: materialDetailResponse.data.sourceUrl ?? "",
+      title: detail.title ?? "",
+      description: detail.description ?? "",
+      fileUrl: detail.sourceUrl ?? detail.fileUrl ?? "",
     });
   }, [form, isEditMode, materialDetailResponse]);
 
@@ -163,7 +494,145 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
   };
 
   const classData = classDetailResponse?.data;
-  const materialData = materialDetailResponse?.data;
+  const materialData = materialDetailResponse?.data as
+    | (MaterialDetailResponse & {
+        fileUrl?: string | null;
+        uploadedBy?: { id: string; fullName: string } | null;
+      })
+    | undefined;
+
+  const teacherName =
+    materialData?.teacher?.fullName?.trim() ||
+    materialData?.uploadedBy?.fullName?.trim() ||
+    "";
+
+  const groupedOutputs = useMemo(() => {
+    const source = outputsResponse?.data ?? [];
+    return source.reduce<Record<string, MaterialOutputItem[]>>((acc, output) => {
+      if (!acc[output.type]) {
+        acc[output.type] = [];
+      }
+      acc[output.type].push(output);
+      return acc;
+    }, {});
+  }, [outputsResponse?.data]);
+
+  const selectedEditingOutput = useMemo(
+    () => (outputsResponse?.data ?? []).find((output) => output.id === editingOutputId) ?? null,
+    [editingOutputId, outputsResponse?.data],
+  );
+
+  const mcqInvalidIndexes = useMemo(
+    () =>
+      editedMcqQuestions
+        .map((question, index) => (isMcqQuestionValid(question) ? null : index))
+        .filter((index): index is number => typeof index === "number"),
+    [editedMcqQuestions],
+  );
+
+  const essayInvalidIndexes = useMemo(
+    () =>
+      editedEssayQuestions
+        .map((question, index) => (isEssayQuestionValid(question) ? null : index))
+        .filter((index): index is number => typeof index === "number"),
+    [editedEssayQuestions],
+  );
+
+  const canSaveEditedOutput = useMemo(() => {
+    if (editingOutputType === "MCQ") {
+      return editedMcqQuestions.length > 0 && mcqInvalidIndexes.length === 0;
+    }
+
+    if (editingOutputType === "ESSAY") {
+      return editedEssayQuestions.length > 0 && essayInvalidIndexes.length === 0;
+    }
+
+    return false;
+  }, [
+    editedEssayQuestions.length,
+    editedMcqQuestions.length,
+    editingOutputType,
+    essayInvalidIndexes.length,
+    mcqInvalidIndexes.length,
+  ]);
+
+  const mcqValidCount = editedMcqQuestions.length - mcqInvalidIndexes.length;
+  const essayValidCount = editedEssayQuestions.length - essayInvalidIndexes.length;
+
+  const startEditOutput = (output: MaterialOutputItem) => {
+    if (output.type !== "MCQ" && output.type !== "ESSAY") {
+      return;
+    }
+
+    setEditingOutputId(output.id);
+    setEditingOutputType(output.type);
+
+    if (output.type === "MCQ") {
+      setEditedMcqQuestions(parseMcqQuestions(output));
+      setEditedEssayQuestions([]);
+      return;
+    }
+
+    setEditedEssayQuestions(parseEssayQuestions(output));
+    setEditedMcqQuestions([]);
+  };
+
+  const saveEditedOutput = (outputId: string) => {
+    if (!selectedEditingOutput || selectedEditingOutput.id !== outputId) {
+      return;
+    }
+    if (!canSaveEditedOutput) {
+      return;
+    }
+
+    const root = asRecord(selectedEditingOutput.editedContent ?? selectedEditingOutput.content) ?? {};
+
+    let parsed: Record<string, unknown>;
+
+    if (editingOutputType === "MCQ") {
+      parsed = {
+        ...root,
+        mcq_quiz: {
+          ...(asRecord(root.mcq_quiz) ?? {}),
+          questions: editedMcqQuestions.map((question) => {
+            const optionIndex =
+              question.correctOption === "A"
+                ? 0
+                : question.correctOption === "B"
+                  ? 1
+                  : question.correctOption === "C"
+                    ? 2
+                    : 3;
+            return {
+              question: question.question,
+              options: question.options,
+              correct_answer: question.options[optionIndex] ?? question.options[0] ?? "",
+              explanation: question.explanation,
+            };
+          }),
+        },
+      };
+    } else if (editingOutputType === "ESSAY") {
+      parsed = {
+        ...root,
+        essay_quiz: {
+          ...(asRecord(root.essay_quiz) ?? {}),
+          questions: editedEssayQuestions.map((question) => ({
+            question: question.question,
+            expected_points: question.expectedPoints,
+          })),
+        },
+      };
+    } else {
+      return;
+    }
+
+    setSavingOutputId(outputId);
+    editOutputMutation.mutate({
+      outputId,
+      editedContent: parsed,
+    });
+  };
 
   return (
     <section className="space-y-6">
@@ -188,9 +657,9 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
               ? `Add a new learning resource for ${classData.name} (${classData.classCode}).`
               : "Create a new learning resource for this class."}
           </p>
-          {isEditMode && materialData?.teacher?.fullName ? (
+          {isEditMode && teacherName ? (
             <p className="text-xs text-muted-foreground">
-              Teacher: {materialData.teacher.fullName}
+              Teacher: {teacherName}
             </p>
           ) : null}
         </div>
@@ -360,6 +829,478 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
             )}
           </CardContent>
         </Card>
+
+        {isEditMode ? (
+          <Card className="h-fit lg:col-span-3">
+            <CardHeader>
+              <CardTitle>AI Jobs & Outputs</CardTitle>
+              <CardDescription>
+                Polling every 4 seconds while job(s) are still queued/processing.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <Badge variant={hasPendingJobs ? "secondary" : "outline"}>
+                  {hasPendingJobs ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      AI jobs in progress
+                    </>
+                  ) : (
+                    "No active AI job"
+                  )}
+                </Badge>
+                <Badge variant="outline">
+                  Total jobs: {jobsResponse?.data?.overview?.totalJobs ?? jobsResponse?.data?.jobs?.length ?? 0}
+                </Badge>
+                <Badge variant="outline">
+                  Outputs: {jobsResponse?.data?.overview?.outputCount ?? outputsResponse?.data?.length ?? 0}
+                </Badge>
+                <Badge variant="outline">
+                  Completed: {jobsResponse?.data?.overview?.completedJobs ?? 0}
+                </Badge>
+              </div>
+
+              {isLoadingJobs ? (
+                <p className="text-sm text-muted-foreground">Loading AI jobs...</p>
+              ) : isJobsError ? (
+                <p className="text-sm text-muted-foreground">Failed to load AI jobs.</p>
+              ) : (jobsResponse?.data?.jobs?.length ?? 0) === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No AI jobs found for this material yet.
+                </p>
+              ) : (
+                <div className="grid gap-3 md:grid-cols-2">
+                  {(jobsResponse?.data?.jobs ?? []).map((job) => (
+                    <div
+                      key={job.id}
+                      className="rounded-xl border border-border/60 bg-background/60 p-4"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-medium">{job.type}</p>
+                        <Badge variant={getJobStatusBadgeVariant(job.status)}>
+                          {getJobStatusLabel(job.status)}
+                        </Badge>
+                      </div>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Created: {formatDateTimeLabel(job.createdAt)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Completed: {formatDateTimeLabel(job.completedAt)}
+                      </p>
+                      {job.lastError ? (
+                        <p className="mt-2 inline-flex items-start gap-1.5 text-xs text-destructive">
+                          <OctagonAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                          {job.lastError}
+                        </p>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="space-y-3 border-t pt-4">
+                <h3 className="text-sm font-semibold tracking-tight">
+                  Output by type
+                </h3>
+                {isLoadingOutputs ? (
+                  <p className="text-sm text-muted-foreground">
+                    Loading AI outputs...
+                  </p>
+                ) : isOutputsError ? (
+                  <p className="text-sm text-muted-foreground">
+                    Failed to load AI outputs.
+                  </p>
+                ) : (outputsResponse?.data?.length ?? 0) === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No AI outputs available yet.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {Object.entries(groupedOutputs).map(([type, items]) => (
+                      <div
+                        key={type}
+                        className="rounded-xl border border-border/60 bg-background/60 p-4"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <h4 className="text-sm font-medium">{type}</h4>
+                          <Badge variant="outline">{items.length} item(s)</Badge>
+                        </div>
+                        <div className="mt-3 space-y-2">
+                          {items.map((output) => (
+                            <div
+                              key={output.id}
+                              className="rounded-lg border border-border/50 bg-background/70 p-3"
+                            >
+                              <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <CheckCircle2 className="h-3.5 w-3.5" />
+                                {output.isPublished ? "Published" : "Draft"} -{" "}
+                                {formatDateTimeLabel(output.createdAt)}
+                              </p>
+                              <p className="mt-1 line-clamp-3 text-sm text-foreground/90">
+                                {getOutputPreview(output)}
+                              </p>
+
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => startEditOutput(output)}
+                                  disabled={output.type !== "MCQ" && output.type !== "ESSAY"}
+                                >
+                                  Edit Output
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant={output.isPublished ? "outline" : "default"}
+                                  disabled={publishOutputMutation.isPending}
+                                  onClick={() => {
+                                    setPublishingOutputId(output.id);
+                                    publishOutputMutation.mutate({
+                                      outputId: output.id,
+                                      publish: !output.isPublished,
+                                    });
+                                  }}
+                                >
+                                  {publishingOutputId === output.id &&
+                                  publishOutputMutation.isPending
+                                    ? "Saving..."
+                                    : output.isPublished
+                                      ? "Unpublish"
+                                      : "Publish"}
+                                </Button>
+                                {output.type === "MCQ" || output.type === "ESSAY" ? (
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    disabled={createAssignmentFromOutputMutation.isPending}
+                                    onClick={() => {
+                                      setCreatingAssignmentOutputId(output.id);
+                                      createAssignmentFromOutputMutation.mutate({
+                                        outputId: output.id,
+                                        status: "DRAFT",
+                                      });
+                                    }}
+                                  >
+                                    {creatingAssignmentOutputId === output.id &&
+                                    createAssignmentFromOutputMutation.isPending
+                                      ? "Creating..."
+                                      : "Create Assignment"}
+                                  </Button>
+                                ) : null}
+                              </div>
+
+                              {editingOutputId === output.id ? (
+                                <div className="mt-3 space-y-2 rounded-md border border-border/60 p-3">
+                                  {editingOutputType === "MCQ" ? (
+                                    <div className="space-y-3">
+                                      <p className="text-xs text-muted-foreground">
+                                        Edit MCQ content using structured fields.
+                                      </p>
+                                      <div className="flex items-center gap-2 text-xs">
+                                        <Badge variant={mcqInvalidIndexes.length === 0 ? "default" : "secondary"}>
+                                          {mcqValidCount}/{editedMcqQuestions.length} questions valid
+                                        </Badge>
+                                      </div>
+                                      <Accordion
+                                        type="multiple"
+                                        className="rounded-md border border-border/60 px-3"
+                                      >
+                                        {editedMcqQuestions.map((question, questionIndex) => {
+                                          const isInvalid = mcqInvalidIndexes.includes(questionIndex);
+                                          return (
+                                            <AccordionItem
+                                              key={question.id}
+                                              value={`${question.id}-${questionIndex}`}
+                                            >
+                                              <AccordionTrigger className="hover:no-underline">
+                                                <span className="flex items-center gap-2">
+                                                  <span>Question {questionIndex + 1}</span>
+                                                  <Badge
+                                                    variant={isInvalid ? "destructive" : "outline"}
+                                                    className="text-[10px]"
+                                                  >
+                                                    {isInvalid ? "Incomplete" : "Valid"}
+                                                  </Badge>
+                                                </span>
+                                              </AccordionTrigger>
+                                              <AccordionContent className="space-y-3">
+                                                <Input
+                                                  value={question.question}
+                                                  onChange={(event) =>
+                                                    setEditedMcqQuestions((prev) =>
+                                                      prev.map((item, itemIndex) =>
+                                                        itemIndex === questionIndex
+                                                          ? { ...item, question: event.target.value }
+                                                          : item,
+                                                      ),
+                                                    )
+                                                  }
+                                                  placeholder={`Question ${questionIndex + 1}`}
+                                                />
+                                                <div className="grid gap-2 md:grid-cols-2">
+                                                  {question.options.map((option, optionIndex) => (
+                                                    <Input
+                                                      key={`${question.id}-option-${optionIndex}`}
+                                                      value={option}
+                                                      onChange={(event) =>
+                                                        setEditedMcqQuestions((prev) =>
+                                                          prev.map((item, itemIndex) => {
+                                                            if (itemIndex !== questionIndex) return item;
+                                                            const nextOptions = [...item.options] as [
+                                                              string,
+                                                              string,
+                                                              string,
+                                                              string,
+                                                            ];
+                                                            nextOptions[optionIndex] = event.target.value;
+                                                            return { ...item, options: nextOptions };
+                                                          }),
+                                                        )
+                                                      }
+                                                      placeholder={`Option ${String.fromCharCode(65 + optionIndex)}`}
+                                                    />
+                                                  ))}
+                                                </div>
+                                                <div className="grid gap-2 md:grid-cols-[180px_minmax(0,1fr)]">
+                                                  <Select
+                                                    value={question.correctOption}
+                                                    onValueChange={(value) =>
+                                                      setEditedMcqQuestions((prev) =>
+                                                        prev.map((item, itemIndex) =>
+                                                          itemIndex === questionIndex
+                                                            ? {
+                                                                ...item,
+                                                                correctOption: value as "A" | "B" | "C" | "D",
+                                                              }
+                                                            : item,
+                                                        ),
+                                                      )
+                                                    }
+                                                  >
+                                                    <SelectTrigger>
+                                                      <SelectValue placeholder="Correct option" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                      <SelectItem value="A">Correct: A</SelectItem>
+                                                      <SelectItem value="B">Correct: B</SelectItem>
+                                                      <SelectItem value="C">Correct: C</SelectItem>
+                                                      <SelectItem value="D">Correct: D</SelectItem>
+                                                    </SelectContent>
+                                                  </Select>
+                                                  <Input
+                                                    value={question.explanation}
+                                                    onChange={(event) =>
+                                                      setEditedMcqQuestions((prev) =>
+                                                        prev.map((item, itemIndex) =>
+                                                          itemIndex === questionIndex
+                                                            ? { ...item, explanation: event.target.value }
+                                                            : item,
+                                                        ),
+                                                      )
+                                                    }
+                                                    placeholder="Explanation (optional)"
+                                                  />
+                                                </div>
+                                                <div className="flex justify-end">
+                                                  <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() =>
+                                                      setEditedMcqQuestions((prev) =>
+                                                        prev.length > 1
+                                                          ? prev.filter((_, itemIndex) => itemIndex !== questionIndex)
+                                                          : prev,
+                                                      )
+                                                    }
+                                                    disabled={editedMcqQuestions.length <= 1}
+                                                  >
+                                                    Remove Question
+                                                  </Button>
+                                                </div>
+                                              </AccordionContent>
+                                            </AccordionItem>
+                                          );
+                                        })}
+                                      </Accordion>
+                                      {mcqInvalidIndexes.length > 0 ? (
+                                        <p className="text-xs text-destructive">
+                                          Complete all required fields for each MCQ question before saving.
+                                        </p>
+                                      ) : null}
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() =>
+                                          setEditedMcqQuestions((prev) => [
+                                            ...prev,
+                                            {
+                                              id: `mcq-${prev.length + 1}`,
+                                              question: "",
+                                              options: ["", "", "", ""],
+                                              correctOption: "A",
+                                              explanation: "",
+                                            },
+                                          ])
+                                        }
+                                      >
+                                        Add MCQ Question
+                                      </Button>
+                                    </div>
+                                  ) : editingOutputType === "ESSAY" ? (
+                                    <div className="space-y-3">
+                                      <p className="text-xs text-muted-foreground">
+                                        Edit essay content using structured fields.
+                                      </p>
+                                      <div className="flex items-center gap-2 text-xs">
+                                        <Badge variant={essayInvalidIndexes.length === 0 ? "default" : "secondary"}>
+                                          {essayValidCount}/{editedEssayQuestions.length} questions valid
+                                        </Badge>
+                                      </div>
+                                      <Accordion
+                                        type="multiple"
+                                        className="rounded-md border border-border/60 px-3"
+                                      >
+                                        {editedEssayQuestions.map((question, questionIndex) => {
+                                          const isInvalid = essayInvalidIndexes.includes(questionIndex);
+                                          return (
+                                            <AccordionItem
+                                              key={question.id}
+                                              value={`${question.id}-${questionIndex}`}
+                                            >
+                                              <AccordionTrigger className="hover:no-underline">
+                                                <span className="flex items-center gap-2">
+                                                  <span>Question {questionIndex + 1}</span>
+                                                  <Badge
+                                                    variant={isInvalid ? "destructive" : "outline"}
+                                                    className="text-[10px]"
+                                                  >
+                                                    {isInvalid ? "Incomplete" : "Valid"}
+                                                  </Badge>
+                                                </span>
+                                              </AccordionTrigger>
+                                              <AccordionContent className="space-y-3">
+                                                <Input
+                                                  value={question.question}
+                                                  onChange={(event) =>
+                                                    setEditedEssayQuestions((prev) =>
+                                                      prev.map((item, itemIndex) =>
+                                                        itemIndex === questionIndex
+                                                          ? { ...item, question: event.target.value }
+                                                          : item,
+                                                      ),
+                                                    )
+                                                  }
+                                                  placeholder={`Essay question ${questionIndex + 1}`}
+                                                />
+                                                <Textarea
+                                                  value={question.expectedPoints}
+                                                  onChange={(event) =>
+                                                    setEditedEssayQuestions((prev) =>
+                                                      prev.map((item, itemIndex) =>
+                                                        itemIndex === questionIndex
+                                                          ? { ...item, expectedPoints: event.target.value }
+                                                          : item,
+                                                      ),
+                                                    )
+                                                  }
+                                                  placeholder="Expected points / answer guide"
+                                                  className="min-h-[100px]"
+                                                />
+                                                <div className="flex justify-end">
+                                                  <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() =>
+                                                      setEditedEssayQuestions((prev) =>
+                                                        prev.length > 1
+                                                          ? prev.filter((_, itemIndex) => itemIndex !== questionIndex)
+                                                          : prev,
+                                                      )
+                                                    }
+                                                    disabled={editedEssayQuestions.length <= 1}
+                                                  >
+                                                    Remove Question
+                                                  </Button>
+                                                </div>
+                                              </AccordionContent>
+                                            </AccordionItem>
+                                          );
+                                        })}
+                                      </Accordion>
+                                      {essayInvalidIndexes.length > 0 ? (
+                                        <p className="text-xs text-destructive">
+                                          Complete all required fields for each essay question before saving.
+                                        </p>
+                                      ) : null}
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() =>
+                                          setEditedEssayQuestions((prev) => [
+                                            ...prev,
+                                            {
+                                              id: `essay-${prev.length + 1}`,
+                                              question: "",
+                                              expectedPoints: "",
+                                            },
+                                          ])
+                                        }
+                                      >
+                                        Add Essay Question
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <p className="text-xs text-muted-foreground">
+                                      Form editor is available for MCQ and ESSAY output only.
+                                    </p>
+                                  )}
+                                  <div className="flex gap-2">
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      onClick={() => saveEditedOutput(output.id)}
+                                      disabled={!canSaveEditedOutput || editOutputMutation.isPending}
+                                    >
+                                      {savingOutputId === output.id &&
+                                      editOutputMutation.isPending
+                                        ? "Saving..."
+                                        : "Save Edit"}
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => {
+                                        setEditingOutputId(null);
+                                        setEditingOutputType(null);
+                                        setEditedMcqQuestions([]);
+                                        setEditedEssayQuestions([]);
+                                      }}
+                                      disabled={editOutputMutation.isPending}
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                </div>
+                              ) : null}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
       </div>
     </section>
   );

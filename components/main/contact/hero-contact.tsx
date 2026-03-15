@@ -43,9 +43,9 @@ export function HeroContact() {
           transition={{ delay: 0.1, duration: 0.8, ease: smoothEase }}
           className="text-5xl md:text-7xl font-extrabold tracking-tight text-foreground mb-6"
         >
-          Let&apos;s Build Better{" "}
+          Let&apos;s Improve{" "}
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-400">
-            Learning Systems.
+            Learning Operations.
           </span>
         </motion.h1>
 
@@ -55,8 +55,8 @@ export function HeroContact() {
           transition={{ delay: 0.2, duration: 0.8, ease: smoothEase }}
           className="text-lg md:text-xl text-muted-foreground max-w-2xl font-light leading-relaxed"
         >
-          Need integration support, enterprise onboarding, or technical guidance
-          for your API workflow? Our team is ready to help.
+          Need onboarding support, product guidance, or implementation help for
+          your institution? Our team is ready to assist.
         </motion.p>
       </div>
     </section>

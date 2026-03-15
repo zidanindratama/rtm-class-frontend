@@ -1,29 +1,29 @@
 const lanes = [
   {
     lane: "Content Team",
-    focus: "Defines learning goals and prompt constraints.",
+    focus: "Defines learning objectives, class activities, and teaching materials.",
     tasks: [
-      "Choose source files and objective tags",
-      "Set generation scope and question mix",
-      "Review first-pass output quality",
+      "Prepare class content and assignment plans",
+      "Publish discussion prompts and instructions",
+      "Review learning outcomes each cycle",
     ],
   },
   {
     lane: "Platform Team",
-    focus: "Maintains stability, queue health, and processing throughput.",
+    focus: "Maintains platform health, access control, and system reliability.",
     tasks: [
-      "Monitor asynchronous job lifecycle",
-      "Handle retries and fallback behavior",
-      "Tune queue and worker performance",
+      "Manage user roles and permissions",
+      "Maintain service stability and deployment quality",
+      "Support institutional onboarding needs",
     ],
   },
   {
     lane: "Quality Team",
-    focus: "Enforces consistency before content reaches classrooms.",
+    focus: "Ensures instructional quality and consistency across class delivery.",
     tasks: [
-      "Run rubric and factual checks",
-      "Validate readability and instruction clarity",
-      "Approve or return content for revision",
+      "Evaluate rubric alignment and scoring quality",
+      "Review clarity of published materials",
+      "Recommend improvement for next iteration",
     ],
   },
 ];

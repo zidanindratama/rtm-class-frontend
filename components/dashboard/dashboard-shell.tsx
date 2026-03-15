@@ -13,7 +13,7 @@ import type { DashboardRole } from "@/routes/dashboard-routes";
 type DashboardShellProps = {
   children: React.ReactNode;
   role: DashboardRole;
-  breadcrumb: React.ReactNode;
+  breadcrumb?: React.ReactNode;
 };
 
 export function DashboardShell({
@@ -32,7 +32,7 @@ export function DashboardShell({
               orientation="vertical"
               className="mr-2 data-[orientation=vertical]:h-4"
             />
-            {breadcrumb}
+            {breadcrumb ?? null}
           </div>
 
           <div className="flex items-center gap-2 md:px-4">

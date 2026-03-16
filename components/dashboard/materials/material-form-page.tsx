@@ -49,10 +49,12 @@ import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { ClassDetailResponse } from "@/components/dashboard/classes/class-types";
 import { APISingleResponse } from "@/types/api-response";
+import { authTokenStorage } from "@/lib/axios-instance";
 import {
   MaterialAiJob,
   MaterialJobsResponse,
   CreateMaterialPayload,
+  MaterialListItem,
   MaterialDetailResponse,
   MaterialCreateResponse,
   MaterialOutputItem,
@@ -295,6 +297,9 @@ function isEssayQuestionValid(question: EditableEssayQuestion) {
 export function MaterialFormPage(props: MaterialFormPageProps) {
   const { classId } = props;
   const isEditMode = props.mode === "edit";
+  const showAiJobsSection = false;
+  const currentRole = authTokenStorage.getUserRole();
+  const canManageMaterial = currentRole === "ADMIN" || currentRole === "TEACHER";
   const materialId = isEditMode ? props.materialId : undefined;
   const router = useRouter();
   const backHref = `/dashboard/my-class/${classId}/materials`;
@@ -388,6 +393,33 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
     invalidateKeys: [
       ["class-materials", "list", classId],
       ["class-materials", "class", classId],
+    ],
+    options: {
+      onSuccess: () => {
+        router.push(backHref);
+      },
+    },
+  });
+
+  const updateMaterialMutation = usePatchData<
+    APISingleResponse<MaterialListItem>,
+    {
+      title: string;
+      description?: string;
+      fileUrl: string;
+      fileMimeType?: string;
+    }
+  >({
+    key: ["class-materials", "update", materialId],
+    endpoint: () => `/materials/${materialId}`,
+    extractData: false,
+    successMessage: (response) =>
+      response.message || "Material updated successfully.",
+    errorMessage: "Failed to update material.",
+    invalidateKeys: [
+      ["class-materials", "list", classId],
+      ["class-materials", "class", classId],
+      ["class-materials", "detail", materialId],
     ],
     options: {
       onSuccess: () => {
@@ -562,6 +594,17 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
     });
   };
 
+  const handleUpdate = (values: CreateMaterialValues) => {
+    if (!materialId || !canManageMaterial) return;
+
+    updateMaterialMutation.mutate({
+      title: values.title.trim(),
+      fileUrl: values.fileUrl.trim(),
+      description: toOptionalTrimmed(values.description),
+      fileMimeType: inferMimeTypeFromFileUrl(values.fileUrl),
+    });
+  };
+
   const handleTriggerAiJobs = (outputs: Array<"MCQ" | "ESSAY" | "SUMMARY">) => {
     if (!materialId || outputs.length === 0) return;
 
@@ -581,11 +624,13 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
   };
 
   const handleDeleteMaterial = () => {
-    if (!materialId) return;
+    if (!materialId || !canManageMaterial) return;
     deleteMaterialMutation.mutate({ materialId });
   };
 
   const classData = classDetailResponse?.data;
+  const isSubmittingMaterial =
+    createMaterialMutation.isPending || updateMaterialMutation.isPending;
   const materialData = materialDetailResponse?.data as
     | (MaterialDetailResponse & {
         fileUrl?: string | null;
@@ -763,7 +808,7 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
             <CardTitle>Material Information</CardTitle>
             <CardDescription>
               {isEditMode
-                ? "Fetched from material detail endpoint."
+                ? "Edit material fields and save changes."
                 : "Fill required fields and save to publish this material."}
             </CardDescription>
           </CardHeader>
@@ -795,7 +840,7 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
               <form
                 onSubmit={
                   isEditMode
-                    ? (event) => event.preventDefault()
+                    ? form.handleSubmit(handleUpdate)
                     : form.handleSubmit(handleCreate)
                 }
                 className="grid gap-5 md:grid-cols-2"
@@ -811,7 +856,7 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
                           placeholder="Enter material title"
                           {...field}
                           value={field.value ?? ""}
-                          disabled={isEditMode}
+                          disabled={isSubmittingMaterial || (isEditMode && !canManageMaterial)}
                         />
                       </FormControl>
                       <FormMessage />
@@ -831,7 +876,7 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
                           className="min-h-[140px] resize-none"
                           {...field}
                           value={field.value ?? ""}
-                          disabled={isEditMode}
+                          disabled={isSubmittingMaterial || (isEditMode && !canManageMaterial)}
                         />
                       </FormControl>
                       <FormMessage />
@@ -859,7 +904,7 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
                           uploadingLabel="Uploading..."
                           successMessage="Material file uploaded successfully."
                           errorMessage="Failed to upload material file."
-                          disabled={createMaterialMutation.isPending || isEditMode}
+                          disabled={isSubmittingMaterial || (isEditMode && !canManageMaterial)}
                           validateFile={(file) => {
                             if (file.size > 20 * 1024 * 1024) {
                               return "File size must be 20MB or less.";
@@ -877,7 +922,7 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
                 />
 
                 <div className="flex justify-end gap-2 border-t pt-5 md:col-span-2">
-                  {isEditMode ? (
+                  {isEditMode && canManageMaterial ? (
                     <Button
                       type="button"
                       variant="destructive"
@@ -896,10 +941,17 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
                   </Button>
                   <Button
                     type="submit"
-                    disabled={createMaterialMutation.isPending || isEditMode}
+                    disabled={
+                      isSubmittingMaterial ||
+                      (isEditMode && (!materialId || !canManageMaterial))
+                    }
                   >
                     {isEditMode
-                      ? "Detail Loaded"
+                      ? canManageMaterial
+                        ? updateMaterialMutation.isPending
+                          ? "Saving..."
+                          : "Save Changes"
+                        : "View Only"
                       : createMaterialMutation.isPending
                         ? "Creating..."
                         : "Create Material"}
@@ -918,9 +970,19 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
           <CardContent className="space-y-2 text-sm text-muted-foreground">
             {isEditMode ? (
               <>
-                <p>- This page fetches material detail by ID.</p>
-                <p>- Only key fields are shown to avoid sensitive exposure.</p>
-                <p>- IDs are intentionally not displayed.</p>
+                {canManageMaterial ? (
+                  <>
+                    <p>- You can update title, description, and file URL.</p>
+                    <p>- Save changes to sync with backend material data.</p>
+                    <p>- Delete is permanent and removes related AI jobs/outputs.</p>
+                  </>
+                ) : (
+                  <>
+                    <p>- You are viewing this material in read-only mode.</p>
+                    <p>- Student role cannot edit or delete material.</p>
+                    <p>- Ask your teacher if material metadata needs changes.</p>
+                  </>
+                )}
               </>
             ) : (
               <>
@@ -932,7 +994,7 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
           </CardContent>
         </Card>
 
-        {isEditMode ? (
+        {isEditMode && showAiJobsSection ? (
           <Card className="h-fit lg:col-span-3">
             <CardHeader>
               <CardTitle>AI Jobs & Outputs</CardTitle>

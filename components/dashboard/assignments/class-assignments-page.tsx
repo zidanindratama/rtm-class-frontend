@@ -57,7 +57,7 @@ import {
   McqQuestionDraft,
 } from "./assignment-form-utils";
 import { AssignmentAiAssistantDialog } from "./assignment-ai-assistant-dialog";
-import type { AssignmentAiDraft } from "./assignment-ai-utils";
+import type { AiTransformJobType, AssignmentAiDraft } from "./assignment-ai-utils";
 import { AssignmentQuestionBuilderSection } from "./assignment-question-builder-section";
 
 type ClassAssignmentsPageProps = {
@@ -102,7 +102,9 @@ export function ClassAssignmentsPage({
   const [maxScore, setMaxScore] = useState("100");
   const [dueAt, setDueAt] = useState<Date | undefined>(undefined);
   const [contentHtml, setContentHtml] = useState("");
+  const [summaryText, setSummaryText] = useState("");
   const [linkedMaterialId, setLinkedMaterialId] = useState<string | undefined>(undefined);
+  const [aiGeneratedOutputs, setAiGeneratedOutputs] = useState<AiTransformJobType[] | null>(null);
   const [aiSourceMaterial, setAiSourceMaterial] = useState<{
     title: string;
     url: string;
@@ -185,7 +187,9 @@ export function ClassAssignmentsPage({
     setMaxScore("100");
     setDueAt(undefined);
     setContentHtml("");
+    setSummaryText("");
     setLinkedMaterialId(undefined);
+    setAiGeneratedOutputs(null);
     setAiSourceMaterial(null);
     setMcqQuestions([]);
     setEssayQuestions([]);
@@ -248,6 +252,7 @@ export function ClassAssignmentsPage({
     title.trim().length > 0 ||
     description.trim().length > 0 ||
     stripHtml(contentHtml).length > 0 ||
+    summaryText.trim().length > 0 ||
     assignmentType !== "TASK" ||
     assignmentStatus !== "DRAFT" ||
     passingScore !== "70" ||
@@ -265,6 +270,16 @@ export function ClassAssignmentsPage({
 
   const isMcqType = assignmentType === "QUIZ_MCQ";
   const isEssayType = assignmentType === "QUIZ_ESSAY";
+  const hasAiGeneratedOutputs = (aiGeneratedOutputs?.length ?? 0) > 0;
+  const showMcqBuilder = hasAiGeneratedOutputs
+    ? aiGeneratedOutputs?.includes("MCQ") ?? false
+    : isMcqType;
+  const showEssayBuilder = hasAiGeneratedOutputs
+    ? aiGeneratedOutputs?.includes("ESSAY") ?? false
+    : isEssayType;
+  const showSummaryBuilder = hasAiGeneratedOutputs
+    ? aiGeneratedOutputs?.includes("SUMMARY") ?? false
+    : false;
   const builderQuestionPerPage = 10;
   const mcqBuilderTotalPages = Math.max(1, Math.ceil(mcqQuestions.length / builderQuestionPerPage));
   const essayBuilderTotalPages = Math.max(1, Math.ceil(essayQuestions.length / builderQuestionPerPage));
@@ -273,12 +288,12 @@ export function ClassAssignmentsPage({
   const questionPayload = useMemo(
     () =>
       buildQuestionPayload({
-        isMcqType,
-        isEssayType,
+        isMcqType: showMcqBuilder,
+        isEssayType: showEssayBuilder,
         mcqQuestions,
         essayQuestions,
       }),
-    [essayQuestions, isEssayType, isMcqType, mcqQuestions],
+    [essayQuestions, mcqQuestions, showEssayBuilder, showMcqBuilder],
   );
 
   const applyAiDraft = (draft: AssignmentAiDraft) => {
@@ -298,7 +313,9 @@ export function ClassAssignmentsPage({
     setMaxScore("100");
     setDueAt(undefined);
     setContentHtml(draft.contentHtml);
+    setSummaryText(draft.summaryText);
     setLinkedMaterialId(draft.materialId);
+    setAiGeneratedOutputs(draft.outputs.length > 0 ? draft.outputs : null);
     setAiSourceMaterial({
       title: draft.sourceMaterialTitle,
       url: draft.sourceMaterialUrl,
@@ -582,23 +599,82 @@ export function ClassAssignmentsPage({
                   />
                 </div>
 
-                <AssignmentQuestionBuilderSection
-                  assignmentType={assignmentType}
-                  mcqQuestions={mcqQuestions}
-                  essayQuestions={essayQuestions}
-                  setMcqQuestions={setMcqQuestions}
-                  setEssayQuestions={setEssayQuestions}
-                  mcqBuilderPage={activeMcqBuilderPage}
-                  essayBuilderPage={activeEssayBuilderPage}
-                  setMcqBuilderPage={setMcqBuilderPage}
-                  setEssayBuilderPage={setEssayBuilderPage}
-                  builderQuestionPerPage={builderQuestionPerPage}
-                  emptyMessage="No question added yet. Use the button above to add questions for this assignment type."
-                  optionalMessage="Question builder is optional for this assignment type. You can still write full instructions in the rich text editor above."
-                  titleDescription="Compose questions directly in this assignment so students can answer clearly."
-                  showMcqScoringControls
-                  showEssayPoints
-                />
+                {showMcqBuilder || showEssayBuilder ? (
+                  <div className="space-y-4">
+                    {showMcqBuilder ? (
+                      <AssignmentQuestionBuilderSection
+                        assignmentType="QUIZ_MCQ"
+                        mcqQuestions={mcqQuestions}
+                        essayQuestions={essayQuestions}
+                        setMcqQuestions={setMcqQuestions}
+                        setEssayQuestions={setEssayQuestions}
+                        mcqBuilderPage={activeMcqBuilderPage}
+                        essayBuilderPage={activeEssayBuilderPage}
+                        setMcqBuilderPage={setMcqBuilderPage}
+                        setEssayBuilderPage={setEssayBuilderPage}
+                        builderQuestionPerPage={builderQuestionPerPage}
+                        emptyMessage="No MCQ question added yet. Use the button above to add MCQ questions."
+                        optionalMessage="Question builder is optional for this assignment type. You can still write full instructions in the rich text editor above."
+                        titleDescription="Compose MCQ questions directly in this assignment."
+                        showMcqScoringControls
+                        showEssayPoints
+                      />
+                    ) : null}
+
+                    {showEssayBuilder ? (
+                      <AssignmentQuestionBuilderSection
+                        assignmentType="QUIZ_ESSAY"
+                        mcqQuestions={mcqQuestions}
+                        essayQuestions={essayQuestions}
+                        setMcqQuestions={setMcqQuestions}
+                        setEssayQuestions={setEssayQuestions}
+                        mcqBuilderPage={activeMcqBuilderPage}
+                        essayBuilderPage={activeEssayBuilderPage}
+                        setMcqBuilderPage={setMcqBuilderPage}
+                        setEssayBuilderPage={setEssayBuilderPage}
+                        builderQuestionPerPage={builderQuestionPerPage}
+                        emptyMessage="No essay question added yet. Use the button above to add essay questions."
+                        optionalMessage="Question builder is optional for this assignment type. You can still write full instructions in the rich text editor above."
+                        titleDescription="Compose essay questions directly in this assignment."
+                        showMcqScoringControls
+                        showEssayPoints
+                      />
+                    ) : null}
+                  </div>
+                ) : (
+                  <AssignmentQuestionBuilderSection
+                    assignmentType={assignmentType}
+                    mcqQuestions={mcqQuestions}
+                    essayQuestions={essayQuestions}
+                    setMcqQuestions={setMcqQuestions}
+                    setEssayQuestions={setEssayQuestions}
+                    mcqBuilderPage={activeMcqBuilderPage}
+                    essayBuilderPage={activeEssayBuilderPage}
+                    setMcqBuilderPage={setMcqBuilderPage}
+                    setEssayBuilderPage={setEssayBuilderPage}
+                    builderQuestionPerPage={builderQuestionPerPage}
+                    emptyMessage="No question added yet. Use the button above to add questions for this assignment type."
+                    optionalMessage="Question builder is optional for this assignment type. You can still write full instructions in the rich text editor above."
+                    titleDescription="Compose questions directly in this assignment so students can answer clearly."
+                    showMcqScoringControls
+                    showEssayPoints
+                  />
+                )}
+
+                {showSummaryBuilder ? (
+                  <div className="rounded-xl border border-border/70 bg-background/80 p-4">
+                    <p className="text-sm font-semibold">Summary</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Review and edit the generated summary before saving this assignment.
+                    </p>
+                    <Textarea
+                      value={summaryText}
+                      onChange={(event) => setSummaryText(event.target.value)}
+                      placeholder="Summary text"
+                      className="mt-3 min-h-[140px]"
+                    />
+                  </div>
+                ) : null}
 
                 <div className="flex justify-end border-t border-border/60 pt-4">
                   <Button
@@ -616,6 +692,7 @@ export function ClassAssignmentsPage({
                         dueAt: dueAt?.toISOString(),
                         content: {
                           richTextHtml: contentHtml,
+                          summary: showSummaryBuilder ? summaryText.trim() || undefined : undefined,
                           questionSet: questionPayload,
                         },
                       })

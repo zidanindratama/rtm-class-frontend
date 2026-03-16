@@ -35,6 +35,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
 import { type APISingleResponse } from "@/types/api-response";
+import { authTokenStorage } from "@/lib/axios-instance";
 import { CreateClassPayload, type ClassDetailResponse } from "./class-types";
 import { EditClassForm } from "./edit-class-form";
 import { CLASS_LEVELS } from "./class-constants";
@@ -65,7 +66,7 @@ function isValidAcademicYear(value: string) {
     return false;
   }
 
-  return endYear === startYear + 1;
+  return endYear > startYear;
 }
 
 export const classFormSchema = z.object({
@@ -77,7 +78,7 @@ export const classFormSchema = z.object({
     .optional()
     .refine((value) => !value || isValidAcademicYear(value), {
       message:
-        "Academic year must use YYYY/YYYY format and be sequential (e.g., 2025/2026).",
+        "Academic year must use YYYY/YYYY format, and the second year must be greater than the first year (e.g., 2025/2026).",
     }),
   description: z.string().optional(),
 });
@@ -91,6 +92,9 @@ type ClassFormPageProps =
 export function ClassFormPage({ mode, classId }: ClassFormPageProps) {
   const router = useRouter();
   const isEditMode = mode === "edit";
+  const currentRole = authTokenStorage.getUserRole();
+  const classListHref =
+    currentRole === "ADMIN" ? "/dashboard/classes" : "/dashboard/my-class";
 
   const {
     data: detailResponse,
@@ -111,7 +115,7 @@ export function ClassFormPage({ mode, classId }: ClassFormPageProps) {
     errorMessage: "Failed to create class.",
     invalidateKeys: [["admin", "classes"]],
     options: {
-      onSuccess: () => router.push("/dashboard/classes"),
+      onSuccess: () => router.push(classListHref),
     },
   });
 
@@ -141,7 +145,7 @@ export function ClassFormPage({ mode, classId }: ClassFormPageProps) {
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="space-y-1">
           <Link
-            href="/dashboard/classes"
+            href={classListHref}
             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -180,7 +184,7 @@ export function ClassFormPage({ mode, classId }: ClassFormPageProps) {
               <EditClassForm
                 classId={detailResponse.data.id}
                 data={detailResponse.data}
-                onCancel={() => router.push("/dashboard/classes")}
+                onCancel={() => router.push(classListHref)}
               />
             ) : (
               <Form {...createForm}>
@@ -285,7 +289,7 @@ export function ClassFormPage({ mode, classId }: ClassFormPageProps) {
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => router.push("/dashboard/classes")}
+                      onClick={() => router.push(classListHref)}
                     >
                       Cancel
                     </Button>

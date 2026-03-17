@@ -253,7 +253,7 @@ export function DashboardPageContent({
                   {submissionStatusData.map((entry, index) => (
                     <Cell
                       key={`${entry.name}-${index}`}
-                      fill={entry.fill ?? submissionStatusBluePalette[index % submissionStatusBluePalette.length]}
+                      fill={submissionStatusBluePalette[index % submissionStatusBluePalette.length]}
                     />
                   ))}
                 </Pie>

@@ -57,7 +57,7 @@ export const metadata: Metadata = {
     siteName: "RTM Class",
     images: [
       {
-        url: "/og-image.png",
+        url: "/og-image.jpeg",
         width: 1200,
         height: 630,
         alt: "RTM Class platform preview",
@@ -69,7 +69,7 @@ export const metadata: Metadata = {
     title: "RTM Class | Modern Classroom, Simplified",
     description:
       "Live classes, smart materials, assignments, and collaboration in one place.",
-    images: ["/og-image.png"],
+    images: ["/og-image.jpeg"],
   },
   robots: {
     index: true,

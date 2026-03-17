@@ -7,17 +7,17 @@ const values = [
   {
     icon: Zap,
     title: "Speed",
-    desc: "Design workflow yang ringkas membantu tim bergerak cepat dari perencanaan kelas sampai evaluasi hasil belajar.",
+    desc: "A streamlined workflow helps teams move quickly from class planning to learning outcome evaluation.",
   },
   {
     icon: ShieldCheck,
     title: "Reliability",
-    desc: "Platform dirancang stabil untuk kebutuhan operasional harian sekolah, guru, dan siswa.",
+    desc: "The platform is built for stable daily operations across schools, teachers, and students.",
   },
   {
     icon: Maximize,
     title: "Scalability",
-    desc: "Arsitektur modular memudahkan ekspansi dari satu kelas ke banyak kelas tanpa mengubah alur utama.",
+    desc: "A modular architecture makes it easy to scale from one class to many without changing the core workflow.",
   },
 ];
 

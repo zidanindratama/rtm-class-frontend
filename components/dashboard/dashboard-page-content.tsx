@@ -2,7 +2,7 @@
 
 import { BookOpen, CheckCircle2, ClipboardCheck, Medal, TrendingUp } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, Pie, PieChart, XAxis, YAxis } from "recharts";
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, XAxis, YAxis } from "recharts";
 import { useGetData } from "@/hooks/use-get-data";
 import type { APISingleResponse } from "@/types/api-response";
 import { Badge } from "@/components/ui/badge";
@@ -43,7 +43,7 @@ type TopClassPoint = {
 type SubmissionStatusPoint = {
   name: string;
   value: number;
-  fill: string;
+  fill?: string;
 };
 
 type RowPoint = {
@@ -119,6 +119,14 @@ const submissionChartConfig = {
   },
 } satisfies ChartConfig;
 
+const submissionStatusBluePalette = [
+  "var(--chart-1)",
+  "var(--chart-2)",
+  "var(--chart-3)",
+  "var(--chart-4)",
+  "var(--chart-5)",
+];
+
 export function DashboardPageContent({
   role = "TEACHER",
   title: titleOverride,
@@ -154,6 +162,12 @@ export function DashboardPageContent({
     rankingTitle: payload?.rankingTitle ?? "Performance Ranking",
     rankingRows: payload?.rankingRows ?? [],
   };
+  const submissionStatusData = model.submissionStatus.map((item, index) => ({
+    ...item,
+    fill: item.fill && item.fill.trim().length > 0
+      ? item.fill
+      : submissionStatusBluePalette[index % submissionStatusBluePalette.length],
+  }));
 
   return (
     <section className="space-y-8">
@@ -229,13 +243,20 @@ export function DashboardPageContent({
               <PieChart>
                 <ChartTooltip content={<ChartTooltipContent hideIndicator />} />
                 <Pie
-                  data={model.submissionStatus}
+                  data={submissionStatusData}
                   dataKey="value"
                   nameKey="name"
                   innerRadius={65}
                   outerRadius={102}
                   strokeWidth={2}
-                />
+                >
+                  {submissionStatusData.map((entry, index) => (
+                    <Cell
+                      key={`${entry.name}-${index}`}
+                      fill={entry.fill ?? submissionStatusBluePalette[index % submissionStatusBluePalette.length]}
+                    />
+                  ))}
+                </Pie>
                 <ChartLegend content={<ChartLegendContent nameKey="name" />} />
               </PieChart>
             </ChartContainer>

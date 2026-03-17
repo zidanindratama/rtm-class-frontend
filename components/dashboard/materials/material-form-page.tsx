@@ -162,6 +162,33 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   return value as Record<string, unknown>;
 }
 
+function getSummaryText(output: MaterialOutputItem) {
+  const root = asRecord(output.editedContent ?? output.content);
+  if (!root) return "";
+
+  if (typeof root.summary === "string") {
+    return root.summary.trim();
+  }
+
+  const summary = asRecord(root.summary);
+  if (summary) {
+    const title = typeof summary.title === "string" ? summary.title.trim() : "";
+    const overview =
+      typeof summary.overview === "string" ? summary.overview.trim() : "";
+    const points = Array.isArray(summary.points)
+      ? summary.points
+          .filter((point): point is string => typeof point === "string")
+          .map((point) => point.trim())
+          .filter(Boolean)
+      : [];
+
+    const combined = [title, overview, ...points].filter(Boolean).join("\n");
+    if (combined) return combined;
+  }
+
+  return "";
+}
+
 function getOutputPreview(output: MaterialOutputItem) {
   const content = asRecord(output.content);
   if (!content) return "No content preview available.";
@@ -213,7 +240,8 @@ function parseMcqQuestions(output: MaterialOutputItem): EditableMcqQuestion[] {
       const correctAnswer =
         typeof row.correct_answer === "string" ? row.correct_answer : "";
       const optionIndex = options.findIndex(
-        (option) => option.trim().toLowerCase() === correctAnswer.trim().toLowerCase(),
+        (option) =>
+          option.trim().toLowerCase() === correctAnswer.trim().toLowerCase(),
       );
       const correctOption =
         optionIndex === 0
@@ -229,12 +257,14 @@ function parseMcqQuestions(output: MaterialOutputItem): EditableMcqQuestion[] {
       return {
         id: `mcq-${index + 1}`,
         question,
-        options: [options[0] ?? "", options[1] ?? "", options[2] ?? "", options[3] ?? ""],
+        options: [
+          options[0] ?? "",
+          options[1] ?? "",
+          options[2] ?? "",
+          options[3] ?? "",
+        ],
         correctOption,
-        explanation:
-          typeof row.explanation === "string"
-            ? row.explanation
-            : "",
+        explanation: typeof row.explanation === "string" ? row.explanation : "",
       } as EditableMcqQuestion;
     })
     .filter((item): item is EditableMcqQuestion => Boolean(item));
@@ -252,7 +282,9 @@ function parseMcqQuestions(output: MaterialOutputItem): EditableMcqQuestion[] {
   ];
 }
 
-function parseEssayQuestions(output: MaterialOutputItem): EditableEssayQuestion[] {
+function parseEssayQuestions(
+  output: MaterialOutputItem,
+): EditableEssayQuestion[] {
   const root = asRecord(output.editedContent ?? output.content);
   const quiz = asRecord(root?.essay_quiz);
   const questions = Array.isArray(quiz?.questions) ? quiz.questions : [];
@@ -284,7 +316,9 @@ function parseEssayQuestions(output: MaterialOutputItem): EditableEssayQuestion[
 
 function isMcqQuestionValid(question: EditableMcqQuestion) {
   const hasQuestion = question.question.trim().length > 0;
-  const hasAllOptions = question.options.every((option) => option.trim().length > 0);
+  const hasAllOptions = question.options.every(
+    (option) => option.trim().length > 0,
+  );
   return hasQuestion && hasAllOptions;
 }
 
@@ -299,22 +333,31 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
   const isEditMode = props.mode === "edit";
   const showAiJobsSection = false;
   const currentRole = authTokenStorage.getUserRole();
-  const canManageMaterial = currentRole === "ADMIN" || currentRole === "TEACHER";
+  const canManageMaterial =
+    currentRole === "ADMIN" || currentRole === "TEACHER";
   const materialId = isEditMode ? props.materialId : undefined;
   const router = useRouter();
   const backHref = `/dashboard/my-class/${classId}/materials`;
   const [editingOutputId, setEditingOutputId] = useState<string | null>(null);
-  const [editingOutputType, setEditingOutputType] = useState<"MCQ" | "ESSAY" | null>(null);
-  const [editedMcqQuestions, setEditedMcqQuestions] = useState<EditableMcqQuestion[]>([]);
-  const [editedEssayQuestions, setEditedEssayQuestions] = useState<EditableEssayQuestion[]>([]);
+  const [editingOutputType, setEditingOutputType] = useState<
+    "MCQ" | "ESSAY" | null
+  >(null);
+  const [editedMcqQuestions, setEditedMcqQuestions] = useState<
+    EditableMcqQuestion[]
+  >([]);
+  const [editedEssayQuestions, setEditedEssayQuestions] = useState<
+    EditableEssayQuestion[]
+  >([]);
   const [savingOutputId, setSavingOutputId] = useState<string | null>(null);
-  const [publishingOutputId, setPublishingOutputId] = useState<string | null>(null);
-  const [creatingAssignmentOutputId, setCreatingAssignmentOutputId] = useState<string | null>(
+  const [publishingOutputId, setPublishingOutputId] = useState<string | null>(
     null,
   );
-  const [runningAiType, setRunningAiType] = useState<"MCQ" | "ESSAY" | "SUMMARY" | "ALL" | null>(
-    null,
-  );
+  const [creatingAssignmentOutputId, setCreatingAssignmentOutputId] = useState<
+    string | null
+  >(null);
+  const [runningAiType, setRunningAiType] = useState<
+    "MCQ" | "ESSAY" | "SUMMARY" | "ALL" | null
+  >(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const {
@@ -435,7 +478,8 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
     key: ["material-ai-enqueue", materialId],
     endpoint: "/ai/jobs/transform",
     extractData: false,
-    successMessage: (response) => response.message || "AI jobs queued successfully.",
+    successMessage: (response) =>
+      response.message || "AI jobs queued successfully.",
     errorMessage: "Failed to queue AI job.",
     invalidateKeys: [
       ["material-ai-jobs", materialId],
@@ -460,7 +504,8 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
     key: ["class-materials", "delete", materialId],
     endpoint: (variables) => `/materials/${variables.materialId}`,
     extractData: false,
-    successMessage: (response) => response.message || "Material deleted successfully.",
+    successMessage: (response) =>
+      response.message || "Material deleted successfully.",
     errorMessage: "Failed to delete material.",
     invalidateKeys: [
       ["class-materials", "list", classId],
@@ -485,7 +530,8 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
     { outputId: string; editedContent: Record<string, unknown> }
   >({
     key: ["material-ai-output-edit", materialId],
-    endpoint: (variables) => `/materials/${materialId}/outputs/${variables.outputId}`,
+    endpoint: (variables) =>
+      `/materials/${materialId}/outputs/${variables.outputId}`,
     extractData: false,
     successMessage: "AI output content updated.",
     errorMessage: "Failed to update AI output content.",
@@ -552,7 +598,9 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
         setCreatingAssignmentOutputId(null);
         const assignmentId = response?.data?.id;
         if (assignmentId) {
-          router.push(`/dashboard/my-class/${classId}/assignments/${assignmentId}`);
+          router.push(
+            `/dashboard/my-class/${classId}/assignments/${assignmentId}`,
+          );
         }
       },
       onError: () => {
@@ -645,17 +693,44 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
 
   const groupedOutputs = useMemo(() => {
     const source = outputsResponse?.data ?? [];
-    return source.reduce<Record<string, MaterialOutputItem[]>>((acc, output) => {
-      if (!acc[output.type]) {
-        acc[output.type] = [];
-      }
-      acc[output.type].push(output);
-      return acc;
-    }, {});
+    return source.reduce<Record<string, MaterialOutputItem[]>>(
+      (acc, output) => {
+        if (!acc[output.type]) {
+          acc[output.type] = [];
+        }
+        acc[output.type].push(output);
+        return acc;
+      },
+      {},
+    );
   }, [outputsResponse?.data]);
 
+  const latestSummaryOutput = useMemo(() => {
+    const summaries = (outputsResponse?.data ?? []).filter(
+      (output) => output.type === "SUMMARY",
+    );
+    if (summaries.length === 0) return null;
+
+    return (
+      [...summaries].sort((a, b) => {
+        const right = new Date(b.updatedAt).getTime();
+        const left = new Date(a.updatedAt).getTime();
+        return (
+          (Number.isNaN(right) ? 0 : right) - (Number.isNaN(left) ? 0 : left)
+        );
+      })[0] ?? null
+    );
+  }, [outputsResponse?.data]);
+
+  const latestSummaryText = latestSummaryOutput
+    ? getSummaryText(latestSummaryOutput)
+    : "";
+
   const selectedEditingOutput = useMemo(
-    () => (outputsResponse?.data ?? []).find((output) => output.id === editingOutputId) ?? null,
+    () =>
+      (outputsResponse?.data ?? []).find(
+        (output) => output.id === editingOutputId,
+      ) ?? null,
     [editingOutputId, outputsResponse?.data],
   );
 
@@ -670,7 +745,9 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
   const essayInvalidIndexes = useMemo(
     () =>
       editedEssayQuestions
-        .map((question, index) => (isEssayQuestionValid(question) ? null : index))
+        .map((question, index) =>
+          isEssayQuestionValid(question) ? null : index,
+        )
         .filter((index): index is number => typeof index === "number"),
     [editedEssayQuestions],
   );
@@ -681,7 +758,9 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
     }
 
     if (editingOutputType === "ESSAY") {
-      return editedEssayQuestions.length > 0 && essayInvalidIndexes.length === 0;
+      return (
+        editedEssayQuestions.length > 0 && essayInvalidIndexes.length === 0
+      );
     }
 
     return false;
@@ -694,7 +773,8 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
   ]);
 
   const mcqValidCount = editedMcqQuestions.length - mcqInvalidIndexes.length;
-  const essayValidCount = editedEssayQuestions.length - essayInvalidIndexes.length;
+  const essayValidCount =
+    editedEssayQuestions.length - essayInvalidIndexes.length;
 
   const startEditOutput = (output: MaterialOutputItem) => {
     if (output.type !== "MCQ" && output.type !== "ESSAY") {
@@ -722,7 +802,10 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
       return;
     }
 
-    const root = asRecord(selectedEditingOutput.editedContent ?? selectedEditingOutput.content) ?? {};
+    const root =
+      asRecord(
+        selectedEditingOutput.editedContent ?? selectedEditingOutput.content,
+      ) ?? {};
 
     let parsed: Record<string, unknown>;
 
@@ -743,7 +826,8 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
             return {
               question: question.question,
               options: question.options,
-              correct_answer: question.options[optionIndex] ?? question.options[0] ?? "",
+              correct_answer:
+                question.options[optionIndex] ?? question.options[0] ?? "",
               explanation: question.explanation,
             };
           }),
@@ -791,8 +875,8 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
                 ? `Review material details for ${classData.name} (${classData.classCode}).`
                 : "Review material details for this class."
               : classData
-              ? `Add a new learning resource for ${classData.name} (${classData.classCode}).`
-              : "Create a new learning resource for this class."}
+                ? `Add a new learning resource for ${classData.name} (${classData.classCode}).`
+                : "Create a new learning resource for this class."}
           </p>
           {isEditMode && teacherName ? (
             <p className="text-xs text-muted-foreground">
@@ -801,6 +885,36 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
           ) : null}
         </div>
       </div>
+
+      {isEditMode ? (
+        <div className="rounded-xl border border-border/70 bg-muted/20 p-4">
+          <p className="text-md font-semibold">Summary</p>
+          {isLoadingOutputs ? (
+            <p className="mt-1 text-sm text-muted-foreground">
+              Loading summary...
+            </p>
+          ) : isOutputsError ? (
+            <p className="mt-1 text-sm text-muted-foreground">
+              Failed to load summary.
+            </p>
+          ) : latestSummaryText ? (
+            <>
+              <p className="mt-1 whitespace-pre-wrap text-sm text-foreground/90">
+                {latestSummaryText}
+              </p>
+              {latestSummaryOutput ? (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Updated: {formatDateTimeLabel(latestSummaryOutput.updatedAt)}
+                </p>
+              ) : null}
+            </>
+          ) : (
+            <p className="mt-1 text-sm text-muted-foreground">
+              No summary output available yet.
+            </p>
+          )}
+        </div>
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
@@ -821,7 +935,8 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
             ) : null}
             {isClassError ? (
               <p className="pb-3 text-sm text-muted-foreground">
-                Unable to load class detail. You can still create material for this class ID.
+                Unable to load class detail. You can still create material for
+                this class ID.
               </p>
             ) : null}
             {isEditMode && isLoadingMaterialDetail ? (
@@ -856,7 +971,10 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
                           placeholder="Enter material title"
                           {...field}
                           value={field.value ?? ""}
-                          disabled={isSubmittingMaterial || (isEditMode && !canManageMaterial)}
+                          disabled={
+                            isSubmittingMaterial ||
+                            (isEditMode && !canManageMaterial)
+                          }
                         />
                       </FormControl>
                       <FormMessage />
@@ -876,7 +994,10 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
                           className="min-h-[140px] resize-none"
                           {...field}
                           value={field.value ?? ""}
-                          disabled={isSubmittingMaterial || (isEditMode && !canManageMaterial)}
+                          disabled={
+                            isSubmittingMaterial ||
+                            (isEditMode && !canManageMaterial)
+                          }
                         />
                       </FormControl>
                       <FormMessage />
@@ -904,7 +1025,10 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
                           uploadingLabel="Uploading..."
                           successMessage="Material file uploaded successfully."
                           errorMessage="Failed to upload material file."
-                          disabled={isSubmittingMaterial || (isEditMode && !canManageMaterial)}
+                          disabled={
+                            isSubmittingMaterial ||
+                            (isEditMode && !canManageMaterial)
+                          }
                           validateFile={(file) => {
                             if (file.size > 20 * 1024 * 1024) {
                               return "File size must be 20MB or less.";
@@ -914,7 +1038,8 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
                         />
                       </FormControl>
                       <FormDescription>
-                        Upload a file or paste direct URL that can be accessed by students.
+                        Upload a file or paste direct URL that can be accessed
+                        by students.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -922,16 +1047,6 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
                 />
 
                 <div className="flex justify-end gap-2 border-t pt-5 md:col-span-2">
-                  {isEditMode && canManageMaterial ? (
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      onClick={() => setIsDeleteDialogOpen(true)}
-                      disabled={deleteMaterialMutation.isPending}
-                    >
-                      {deleteMaterialMutation.isPending ? "Deleting..." : "Delete Material"}
-                    </Button>
-                  ) : null}
                   <Button
                     type="button"
                     variant="outline"
@@ -939,6 +1054,19 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
                   >
                     Cancel
                   </Button>
+                  {isEditMode && canManageMaterial ? (
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      onClick={() => setIsDeleteDialogOpen(true)}
+                      disabled={deleteMaterialMutation.isPending}
+                    >
+                      {deleteMaterialMutation.isPending
+                        ? "Deleting..."
+                        : "Delete Material"}
+                    </Button>
+                  ) : null}
+
                   <Button
                     type="submit"
                     disabled={
@@ -974,13 +1102,17 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
                   <>
                     <p>- You can update title, description, and file URL.</p>
                     <p>- Save changes to sync with backend material data.</p>
-                    <p>- Delete is permanent and removes related AI jobs/outputs.</p>
+                    <p>
+                      - Delete is permanent and removes related AI jobs/outputs.
+                    </p>
                   </>
                 ) : (
                   <>
                     <p>- You are viewing this material in read-only mode.</p>
                     <p>- Student role cannot edit or delete material.</p>
-                    <p>- Ask your teacher if material metadata needs changes.</p>
+                    <p>
+                      - Ask your teacher if material metadata needs changes.
+                    </p>
                   </>
                 )}
               </>
@@ -988,7 +1120,9 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
               <>
                 <p>- Title and file URL are required fields.</p>
                 <p>- Use a direct, publicly accessible file URL.</p>
-                <p>- MIME type is inferred automatically from file extension.</p>
+                <p>
+                  - MIME type is inferred automatically from file extension.
+                </p>
               </>
             )}
           </CardContent>
@@ -999,7 +1133,8 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
             <CardHeader>
               <CardTitle>AI Jobs & Outputs</CardTitle>
               <CardDescription>
-                Polling every 4 seconds while job(s) are still queued/processing.
+                Polling every 4 seconds while job(s) are still
+                queued/processing.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -1038,7 +1173,9 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
                   type="button"
                   size="sm"
                   variant="outline"
-                  onClick={() => handleTriggerAiJobs(["MCQ", "ESSAY", "SUMMARY"])}
+                  onClick={() =>
+                    handleTriggerAiJobs(["MCQ", "ESSAY", "SUMMARY"])
+                  }
                   disabled={enqueueAiMutation.isPending}
                 >
                   {runningAiType === "ALL" && enqueueAiMutation.isPending
@@ -1059,10 +1196,16 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
                   )}
                 </Badge>
                 <Badge variant="outline">
-                  Total jobs: {jobsResponse?.data?.overview?.totalJobs ?? jobsResponse?.data?.jobs?.length ?? 0}
+                  Total jobs:{" "}
+                  {jobsResponse?.data?.overview?.totalJobs ??
+                    jobsResponse?.data?.jobs?.length ??
+                    0}
                 </Badge>
                 <Badge variant="outline">
-                  Outputs: {jobsResponse?.data?.overview?.outputCount ?? outputsResponse?.data?.length ?? 0}
+                  Outputs:{" "}
+                  {jobsResponse?.data?.overview?.outputCount ??
+                    outputsResponse?.data?.length ??
+                    0}
                 </Badge>
                 <Badge variant="outline">
                   Completed: {jobsResponse?.data?.overview?.completedJobs ?? 0}
@@ -1070,9 +1213,13 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
               </div>
 
               {isLoadingJobs ? (
-                <p className="text-sm text-muted-foreground">Loading AI jobs...</p>
+                <p className="text-sm text-muted-foreground">
+                  Loading AI jobs...
+                </p>
               ) : isJobsError ? (
-                <p className="text-sm text-muted-foreground">Failed to load AI jobs.</p>
+                <p className="text-sm text-muted-foreground">
+                  Failed to load AI jobs.
+                </p>
               ) : (jobsResponse?.data?.jobs?.length ?? 0) === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   No AI jobs found for this material yet.
@@ -1132,7 +1279,9 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
                       >
                         <div className="flex items-center justify-between gap-2">
                           <h4 className="text-sm font-medium">{type}</h4>
-                          <Badge variant="outline">{items.length} item(s)</Badge>
+                          <Badge variant="outline">
+                            {items.length} item(s)
+                          </Badge>
                         </div>
                         <div className="mt-3 space-y-2">
                           {items.map((output) => (
@@ -1142,7 +1291,9 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
                             >
                               <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
                                 <CheckCircle2 className="h-3.5 w-3.5" />
-                                {output.isPublished ? "Published" : "Draft"} -{" "}
+                                {output.isPublished
+                                  ? "Published"
+                                  : "Draft"} -{" "}
                                 {formatDateTimeLabel(output.createdAt)}
                               </p>
                               <p className="mt-1 line-clamp-3 text-sm text-foreground/90">
@@ -1155,14 +1306,19 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
                                   size="sm"
                                   variant="outline"
                                   onClick={() => startEditOutput(output)}
-                                  disabled={output.type !== "MCQ" && output.type !== "ESSAY"}
+                                  disabled={
+                                    output.type !== "MCQ" &&
+                                    output.type !== "ESSAY"
+                                  }
                                 >
                                   Edit Output
                                 </Button>
                                 <Button
                                   type="button"
                                   size="sm"
-                                  variant={output.isPublished ? "outline" : "default"}
+                                  variant={
+                                    output.isPublished ? "outline" : "default"
+                                  }
                                   disabled={publishOutputMutation.isPending}
                                   onClick={() => {
                                     setPublishingOutputId(output.id);
@@ -1179,17 +1335,22 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
                                       ? "Unpublish"
                                       : "Publish"}
                                 </Button>
-                                {output.type === "MCQ" || output.type === "ESSAY" ? (
+                                {output.type === "MCQ" ||
+                                output.type === "ESSAY" ? (
                                   <Button
                                     type="button"
                                     size="sm"
-                                    disabled={createAssignmentFromOutputMutation.isPending}
+                                    disabled={
+                                      createAssignmentFromOutputMutation.isPending
+                                    }
                                     onClick={() => {
                                       setCreatingAssignmentOutputId(output.id);
-                                      createAssignmentFromOutputMutation.mutate({
-                                        outputId: output.id,
-                                        status: "DRAFT",
-                                      });
+                                      createAssignmentFromOutputMutation.mutate(
+                                        {
+                                          outputId: output.id,
+                                          status: "DRAFT",
+                                        },
+                                      );
                                     }}
                                   >
                                     {creatingAssignmentOutputId === output.id &&
@@ -1205,138 +1366,242 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
                                   {editingOutputType === "MCQ" ? (
                                     <div className="space-y-3">
                                       <p className="text-xs text-muted-foreground">
-                                        Edit MCQ content using structured fields.
+                                        Edit MCQ content using structured
+                                        fields.
                                       </p>
                                       <div className="flex items-center gap-2 text-xs">
-                                        <Badge variant={mcqInvalidIndexes.length === 0 ? "default" : "secondary"}>
-                                          {mcqValidCount}/{editedMcqQuestions.length} questions valid
+                                        <Badge
+                                          variant={
+                                            mcqInvalidIndexes.length === 0
+                                              ? "default"
+                                              : "secondary"
+                                          }
+                                        >
+                                          {mcqValidCount}/
+                                          {editedMcqQuestions.length} questions
+                                          valid
                                         </Badge>
                                       </div>
                                       <Accordion
                                         type="multiple"
                                         className="rounded-md border border-border/60 px-3"
                                       >
-                                        {editedMcqQuestions.map((question, questionIndex) => {
-                                          const isInvalid = mcqInvalidIndexes.includes(questionIndex);
-                                          return (
-                                            <AccordionItem
-                                              key={question.id}
-                                              value={`${question.id}-${questionIndex}`}
-                                            >
-                                              <AccordionTrigger className="hover:no-underline">
-                                                <span className="flex items-center gap-2">
-                                                  <span>Question {questionIndex + 1}</span>
-                                                  <Badge
-                                                    variant={isInvalid ? "destructive" : "outline"}
-                                                    className="text-[10px]"
-                                                  >
-                                                    {isInvalid ? "Incomplete" : "Valid"}
-                                                  </Badge>
-                                                </span>
-                                              </AccordionTrigger>
-                                              <AccordionContent className="space-y-3">
-                                                <Input
-                                                  value={question.question}
-                                                  onChange={(event) =>
-                                                    setEditedMcqQuestions((prev) =>
-                                                      prev.map((item, itemIndex) =>
-                                                        itemIndex === questionIndex
-                                                          ? { ...item, question: event.target.value }
-                                                          : item,
+                                        {editedMcqQuestions.map(
+                                          (question, questionIndex) => {
+                                            const isInvalid =
+                                              mcqInvalidIndexes.includes(
+                                                questionIndex,
+                                              );
+                                            return (
+                                              <AccordionItem
+                                                key={question.id}
+                                                value={`${question.id}-${questionIndex}`}
+                                              >
+                                                <AccordionTrigger className="hover:no-underline">
+                                                  <span className="flex items-center gap-2">
+                                                    <span>
+                                                      Question{" "}
+                                                      {questionIndex + 1}
+                                                    </span>
+                                                    <Badge
+                                                      variant={
+                                                        isInvalid
+                                                          ? "destructive"
+                                                          : "outline"
+                                                      }
+                                                      className="text-[10px]"
+                                                    >
+                                                      {isInvalid
+                                                        ? "Incomplete"
+                                                        : "Valid"}
+                                                    </Badge>
+                                                  </span>
+                                                </AccordionTrigger>
+                                                <AccordionContent className="space-y-3">
+                                                  <Input
+                                                    value={question.question}
+                                                    onChange={(event) =>
+                                                      setEditedMcqQuestions(
+                                                        (prev) =>
+                                                          prev.map(
+                                                            (
+                                                              item,
+                                                              itemIndex,
+                                                            ) =>
+                                                              itemIndex ===
+                                                              questionIndex
+                                                                ? {
+                                                                    ...item,
+                                                                    question:
+                                                                      event
+                                                                        .target
+                                                                        .value,
+                                                                  }
+                                                                : item,
+                                                          ),
+                                                      )
+                                                    }
+                                                    placeholder={`Question ${questionIndex + 1}`}
+                                                  />
+                                                  <div className="grid gap-2 md:grid-cols-2">
+                                                    {question.options.map(
+                                                      (option, optionIndex) => (
+                                                        <Input
+                                                          key={`${question.id}-option-${optionIndex}`}
+                                                          value={option}
+                                                          onChange={(event) =>
+                                                            setEditedMcqQuestions(
+                                                              (prev) =>
+                                                                prev.map(
+                                                                  (
+                                                                    item,
+                                                                    itemIndex,
+                                                                  ) => {
+                                                                    if (
+                                                                      itemIndex !==
+                                                                      questionIndex
+                                                                    )
+                                                                      return item;
+                                                                    const nextOptions =
+                                                                      [
+                                                                        ...item.options,
+                                                                      ] as [
+                                                                        string,
+                                                                        string,
+                                                                        string,
+                                                                        string,
+                                                                      ];
+                                                                    nextOptions[
+                                                                      optionIndex
+                                                                    ] =
+                                                                      event.target.value;
+                                                                    return {
+                                                                      ...item,
+                                                                      options:
+                                                                        nextOptions,
+                                                                    };
+                                                                  },
+                                                                ),
+                                                            )
+                                                          }
+                                                          placeholder={`Option ${String.fromCharCode(65 + optionIndex)}`}
+                                                        />
                                                       ),
-                                                    )
-                                                  }
-                                                  placeholder={`Question ${questionIndex + 1}`}
-                                                />
-                                                <div className="grid gap-2 md:grid-cols-2">
-                                                  {question.options.map((option, optionIndex) => (
-                                                    <Input
-                                                      key={`${question.id}-option-${optionIndex}`}
-                                                      value={option}
-                                                      onChange={(event) =>
-                                                        setEditedMcqQuestions((prev) =>
-                                                          prev.map((item, itemIndex) => {
-                                                            if (itemIndex !== questionIndex) return item;
-                                                            const nextOptions = [...item.options] as [
-                                                              string,
-                                                              string,
-                                                              string,
-                                                              string,
-                                                            ];
-                                                            nextOptions[optionIndex] = event.target.value;
-                                                            return { ...item, options: nextOptions };
-                                                          }),
+                                                    )}
+                                                  </div>
+                                                  <div className="grid gap-2 md:grid-cols-[180px_minmax(0,1fr)]">
+                                                    <Select
+                                                      value={
+                                                        question.correctOption
+                                                      }
+                                                      onValueChange={(value) =>
+                                                        setEditedMcqQuestions(
+                                                          (prev) =>
+                                                            prev.map(
+                                                              (
+                                                                item,
+                                                                itemIndex,
+                                                              ) =>
+                                                                itemIndex ===
+                                                                questionIndex
+                                                                  ? {
+                                                                      ...item,
+                                                                      correctOption:
+                                                                        value as
+                                                                          | "A"
+                                                                          | "B"
+                                                                          | "C"
+                                                                          | "D",
+                                                                    }
+                                                                  : item,
+                                                            ),
                                                         )
                                                       }
-                                                      placeholder={`Option ${String.fromCharCode(65 + optionIndex)}`}
+                                                    >
+                                                      <SelectTrigger>
+                                                        <SelectValue placeholder="Correct option" />
+                                                      </SelectTrigger>
+                                                      <SelectContent>
+                                                        <SelectItem value="A">
+                                                          Correct: A
+                                                        </SelectItem>
+                                                        <SelectItem value="B">
+                                                          Correct: B
+                                                        </SelectItem>
+                                                        <SelectItem value="C">
+                                                          Correct: C
+                                                        </SelectItem>
+                                                        <SelectItem value="D">
+                                                          Correct: D
+                                                        </SelectItem>
+                                                      </SelectContent>
+                                                    </Select>
+                                                    <Input
+                                                      value={
+                                                        question.explanation
+                                                      }
+                                                      onChange={(event) =>
+                                                        setEditedMcqQuestions(
+                                                          (prev) =>
+                                                            prev.map(
+                                                              (
+                                                                item,
+                                                                itemIndex,
+                                                              ) =>
+                                                                itemIndex ===
+                                                                questionIndex
+                                                                  ? {
+                                                                      ...item,
+                                                                      explanation:
+                                                                        event
+                                                                          .target
+                                                                          .value,
+                                                                    }
+                                                                  : item,
+                                                            ),
+                                                        )
+                                                      }
+                                                      placeholder="Explanation (optional)"
                                                     />
-                                                  ))}
-                                                </div>
-                                                <div className="grid gap-2 md:grid-cols-[180px_minmax(0,1fr)]">
-                                                  <Select
-                                                    value={question.correctOption}
-                                                    onValueChange={(value) =>
-                                                      setEditedMcqQuestions((prev) =>
-                                                        prev.map((item, itemIndex) =>
-                                                          itemIndex === questionIndex
-                                                            ? {
-                                                                ...item,
-                                                                correctOption: value as "A" | "B" | "C" | "D",
-                                                              }
-                                                            : item,
-                                                        ),
-                                                      )
-                                                    }
-                                                  >
-                                                    <SelectTrigger>
-                                                      <SelectValue placeholder="Correct option" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                      <SelectItem value="A">Correct: A</SelectItem>
-                                                      <SelectItem value="B">Correct: B</SelectItem>
-                                                      <SelectItem value="C">Correct: C</SelectItem>
-                                                      <SelectItem value="D">Correct: D</SelectItem>
-                                                    </SelectContent>
-                                                  </Select>
-                                                  <Input
-                                                    value={question.explanation}
-                                                    onChange={(event) =>
-                                                      setEditedMcqQuestions((prev) =>
-                                                        prev.map((item, itemIndex) =>
-                                                          itemIndex === questionIndex
-                                                            ? { ...item, explanation: event.target.value }
-                                                            : item,
-                                                        ),
-                                                      )
-                                                    }
-                                                    placeholder="Explanation (optional)"
-                                                  />
-                                                </div>
-                                                <div className="flex justify-end">
-                                                  <Button
-                                                    type="button"
-                                                    size="sm"
-                                                    variant="outline"
-                                                    onClick={() =>
-                                                      setEditedMcqQuestions((prev) =>
-                                                        prev.length > 1
-                                                          ? prev.filter((_, itemIndex) => itemIndex !== questionIndex)
-                                                          : prev,
-                                                      )
-                                                    }
-                                                    disabled={editedMcqQuestions.length <= 1}
-                                                  >
-                                                    Remove Question
-                                                  </Button>
-                                                </div>
-                                              </AccordionContent>
-                                            </AccordionItem>
-                                          );
-                                        })}
+                                                  </div>
+                                                  <div className="flex justify-end">
+                                                    <Button
+                                                      type="button"
+                                                      size="sm"
+                                                      variant="outline"
+                                                      onClick={() =>
+                                                        setEditedMcqQuestions(
+                                                          (prev) =>
+                                                            prev.length > 1
+                                                              ? prev.filter(
+                                                                  (
+                                                                    _,
+                                                                    itemIndex,
+                                                                  ) =>
+                                                                    itemIndex !==
+                                                                    questionIndex,
+                                                                )
+                                                              : prev,
+                                                        )
+                                                      }
+                                                      disabled={
+                                                        editedMcqQuestions.length <=
+                                                        1
+                                                      }
+                                                    >
+                                                      Remove Question
+                                                    </Button>
+                                                  </div>
+                                                </AccordionContent>
+                                              </AccordionItem>
+                                            );
+                                          },
+                                        )}
                                       </Accordion>
                                       {mcqInvalidIndexes.length > 0 ? (
                                         <p className="text-xs text-destructive">
-                                          Complete all required fields for each MCQ question before saving.
+                                          Complete all required fields for each
+                                          MCQ question before saving.
                                         </p>
                                       ) : null}
                                       <Button
@@ -1362,88 +1627,149 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
                                   ) : editingOutputType === "ESSAY" ? (
                                     <div className="space-y-3">
                                       <p className="text-xs text-muted-foreground">
-                                        Edit essay content using structured fields.
+                                        Edit essay content using structured
+                                        fields.
                                       </p>
                                       <div className="flex items-center gap-2 text-xs">
-                                        <Badge variant={essayInvalidIndexes.length === 0 ? "default" : "secondary"}>
-                                          {essayValidCount}/{editedEssayQuestions.length} questions valid
+                                        <Badge
+                                          variant={
+                                            essayInvalidIndexes.length === 0
+                                              ? "default"
+                                              : "secondary"
+                                          }
+                                        >
+                                          {essayValidCount}/
+                                          {editedEssayQuestions.length}{" "}
+                                          questions valid
                                         </Badge>
                                       </div>
                                       <Accordion
                                         type="multiple"
                                         className="rounded-md border border-border/60 px-3"
                                       >
-                                        {editedEssayQuestions.map((question, questionIndex) => {
-                                          const isInvalid = essayInvalidIndexes.includes(questionIndex);
-                                          return (
-                                            <AccordionItem
-                                              key={question.id}
-                                              value={`${question.id}-${questionIndex}`}
-                                            >
-                                              <AccordionTrigger className="hover:no-underline">
-                                                <span className="flex items-center gap-2">
-                                                  <span>Question {questionIndex + 1}</span>
-                                                  <Badge
-                                                    variant={isInvalid ? "destructive" : "outline"}
-                                                    className="text-[10px]"
-                                                  >
-                                                    {isInvalid ? "Incomplete" : "Valid"}
-                                                  </Badge>
-                                                </span>
-                                              </AccordionTrigger>
-                                              <AccordionContent className="space-y-3">
-                                                <Input
-                                                  value={question.question}
-                                                  onChange={(event) =>
-                                                    setEditedEssayQuestions((prev) =>
-                                                      prev.map((item, itemIndex) =>
-                                                        itemIndex === questionIndex
-                                                          ? { ...item, question: event.target.value }
-                                                          : item,
-                                                      ),
-                                                    )
-                                                  }
-                                                  placeholder={`Essay question ${questionIndex + 1}`}
-                                                />
-                                                <Textarea
-                                                  value={question.expectedPoints}
-                                                  onChange={(event) =>
-                                                    setEditedEssayQuestions((prev) =>
-                                                      prev.map((item, itemIndex) =>
-                                                        itemIndex === questionIndex
-                                                          ? { ...item, expectedPoints: event.target.value }
-                                                          : item,
-                                                      ),
-                                                    )
-                                                  }
-                                                  placeholder="Expected points / answer guide"
-                                                  className="min-h-[100px]"
-                                                />
-                                                <div className="flex justify-end">
-                                                  <Button
-                                                    type="button"
-                                                    size="sm"
-                                                    variant="outline"
-                                                    onClick={() =>
-                                                      setEditedEssayQuestions((prev) =>
-                                                        prev.length > 1
-                                                          ? prev.filter((_, itemIndex) => itemIndex !== questionIndex)
-                                                          : prev,
+                                        {editedEssayQuestions.map(
+                                          (question, questionIndex) => {
+                                            const isInvalid =
+                                              essayInvalidIndexes.includes(
+                                                questionIndex,
+                                              );
+                                            return (
+                                              <AccordionItem
+                                                key={question.id}
+                                                value={`${question.id}-${questionIndex}`}
+                                              >
+                                                <AccordionTrigger className="hover:no-underline">
+                                                  <span className="flex items-center gap-2">
+                                                    <span>
+                                                      Question{" "}
+                                                      {questionIndex + 1}
+                                                    </span>
+                                                    <Badge
+                                                      variant={
+                                                        isInvalid
+                                                          ? "destructive"
+                                                          : "outline"
+                                                      }
+                                                      className="text-[10px]"
+                                                    >
+                                                      {isInvalid
+                                                        ? "Incomplete"
+                                                        : "Valid"}
+                                                    </Badge>
+                                                  </span>
+                                                </AccordionTrigger>
+                                                <AccordionContent className="space-y-3">
+                                                  <Input
+                                                    value={question.question}
+                                                    onChange={(event) =>
+                                                      setEditedEssayQuestions(
+                                                        (prev) =>
+                                                          prev.map(
+                                                            (
+                                                              item,
+                                                              itemIndex,
+                                                            ) =>
+                                                              itemIndex ===
+                                                              questionIndex
+                                                                ? {
+                                                                    ...item,
+                                                                    question:
+                                                                      event
+                                                                        .target
+                                                                        .value,
+                                                                  }
+                                                                : item,
+                                                          ),
                                                       )
                                                     }
-                                                    disabled={editedEssayQuestions.length <= 1}
-                                                  >
-                                                    Remove Question
-                                                  </Button>
-                                                </div>
-                                              </AccordionContent>
-                                            </AccordionItem>
-                                          );
-                                        })}
+                                                    placeholder={`Essay question ${questionIndex + 1}`}
+                                                  />
+                                                  <Textarea
+                                                    value={
+                                                      question.expectedPoints
+                                                    }
+                                                    onChange={(event) =>
+                                                      setEditedEssayQuestions(
+                                                        (prev) =>
+                                                          prev.map(
+                                                            (
+                                                              item,
+                                                              itemIndex,
+                                                            ) =>
+                                                              itemIndex ===
+                                                              questionIndex
+                                                                ? {
+                                                                    ...item,
+                                                                    expectedPoints:
+                                                                      event
+                                                                        .target
+                                                                        .value,
+                                                                  }
+                                                                : item,
+                                                          ),
+                                                      )
+                                                    }
+                                                    placeholder="Expected points / answer guide"
+                                                    className="min-h-[100px]"
+                                                  />
+                                                  <div className="flex justify-end">
+                                                    <Button
+                                                      type="button"
+                                                      size="sm"
+                                                      variant="outline"
+                                                      onClick={() =>
+                                                        setEditedEssayQuestions(
+                                                          (prev) =>
+                                                            prev.length > 1
+                                                              ? prev.filter(
+                                                                  (
+                                                                    _,
+                                                                    itemIndex,
+                                                                  ) =>
+                                                                    itemIndex !==
+                                                                    questionIndex,
+                                                                )
+                                                              : prev,
+                                                        )
+                                                      }
+                                                      disabled={
+                                                        editedEssayQuestions.length <=
+                                                        1
+                                                      }
+                                                    >
+                                                      Remove Question
+                                                    </Button>
+                                                  </div>
+                                                </AccordionContent>
+                                              </AccordionItem>
+                                            );
+                                          },
+                                        )}
                                       </Accordion>
                                       {essayInvalidIndexes.length > 0 ? (
                                         <p className="text-xs text-destructive">
-                                          Complete all required fields for each essay question before saving.
+                                          Complete all required fields for each
+                                          essay question before saving.
                                         </p>
                                       ) : null}
                                       <Button
@@ -1466,15 +1792,21 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
                                     </div>
                                   ) : (
                                     <p className="text-xs text-muted-foreground">
-                                      Form editor is available for MCQ and ESSAY output only.
+                                      Form editor is available for MCQ and ESSAY
+                                      output only.
                                     </p>
                                   )}
                                   <div className="flex gap-2">
                                     <Button
                                       type="button"
                                       size="sm"
-                                      onClick={() => saveEditedOutput(output.id)}
-                                      disabled={!canSaveEditedOutput || editOutputMutation.isPending}
+                                      onClick={() =>
+                                        saveEditedOutput(output.id)
+                                      }
+                                      disabled={
+                                        !canSaveEditedOutput ||
+                                        editOutputMutation.isPending
+                                      }
                                     >
                                       {savingOutputId === output.id &&
                                       editOutputMutation.isPending
@@ -1515,7 +1847,9 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
         onOpenChange={setIsDeleteDialogOpen}
         title="Delete this material?"
         description="This action will permanently remove the material and related AI jobs/outputs."
-        confirmText={deleteMaterialMutation.isPending ? "Deleting..." : "Delete Material"}
+        confirmText={
+          deleteMaterialMutation.isPending ? "Deleting..." : "Delete Material"
+        }
         onConfirm={handleDeleteMaterial}
       />
     </section>

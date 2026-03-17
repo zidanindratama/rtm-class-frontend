@@ -5,6 +5,16 @@ import { SystemStatus } from "@/components/main/contact/system-status";
 import { Faq } from "@/components/main/contact/faq";
 import { LocationHq } from "@/components/main/contact/location-hq";
 import { CtaSection } from "@/components/main/landing/cta-section";
+import type { Metadata } from "next";
+import { createPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = createPageMetadata({
+  title: "Contact",
+  description:
+    "Contact RTM Class for onboarding, support, and partnership discussions for your institution.",
+  path: "/contact",
+  keywords: ["contact rtm class", "education platform support", "school onboarding"],
+});
 
 export default function ContactPage() {
   return (

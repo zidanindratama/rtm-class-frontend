@@ -6,14 +6,14 @@ type LegalPageContentProps = {
 
 export function LegalPageContent({ document }: LegalPageContentProps) {
   return (
-    <section className="relative overflow-hidden px-4 pb-16 pt-28 md:px-8 md:pb-20 md:pt-34">
+    <section className="relative overflow-hidden px-4 pb-14 md:pb-20 pt-24 md:pt-34 md:px-8">
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_20%_12%,hsl(var(--primary)/0.15),transparent_34%)]" />
 
-      <div className="mx-auto max-w-4xl rounded-3xl border border-border/45 bg-card/70 p-8 md:p-12">
+      <div className="mx-auto max-w-4xl rounded-3xl border border-border/45 bg-card/70 p-6 sm:p-8 md:p-12">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
           Legal
         </p>
-        <h1 className="mt-4 text-4xl font-bold tracking-tight text-foreground md:text-6xl">
+        <h1 className="mt-4 text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-foreground">
           {document.title}
         </h1>
         <p className="mt-4 text-sm text-muted-foreground">

@@ -6,7 +6,7 @@ export function BlogsHero() {
   const smoothEase = [0.16, 1, 0.3, 1] as const;
 
   return (
-    <section className="relative overflow-hidden border-b border-border/40 px-4 pb-18 pt-28 md:px-8 md:pb-24 md:pt-34">
+    <section className="relative overflow-hidden border-b border-border/40 px-4 pb-14 md:pb-24 pt-24 md:pt-34 md:px-8">
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_25%_20%,hsl(var(--primary)/0.16),transparent_42%),radial-gradient(circle_at_78%_75%,hsl(var(--primary)/0.09),transparent_38%)]" />
 
       <div className="mx-auto max-w-5xl">
@@ -24,7 +24,7 @@ export function BlogsHero() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.7, delay: 0.05, ease: smoothEase }}
-          className="max-w-4xl text-4xl font-bold tracking-tight text-foreground md:text-6xl"
+          className="max-w-4xl text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-foreground"
         >
           Insights on teaching workflows, product operations, and education technology.
         </motion.h1>
@@ -33,7 +33,7 @@ export function BlogsHero() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.12, ease: smoothEase }}
-          className="mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground md:text-lg"
+          className="mt-5 md:mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground md:text-lg"
         >
           A practical collection of product updates, workflow practices, and
           implementation notes from the RTM Class team.

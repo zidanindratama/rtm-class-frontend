@@ -24,18 +24,18 @@ export function BenefitsSection() {
   return (
     <section
       id="benefits"
-      className="py-32 px-4 md:px-8 bg-background relative overflow-hidden border-y border-border/40"
+      className="py-20 md:py-28 px-4 md:px-8 bg-background relative overflow-hidden border-y border-border/40"
     >
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[150px] pointer-events-none -z-10" />
 
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-16 md:gap-24 relative z-10">
+      <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-12 md:gap-24 relative z-10">
         <div className="md:w-1/2">
           <div className="sticky top-32">
             <motion.h2
               initial={{ opacity: 0, x: -30 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
-              className="text-4xl md:text-6xl font-extrabold tracking-tighter mb-6 text-foreground"
+              className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tighter mb-5 md:mb-6 text-foreground"
             >
               Designed for <br /> High Throughput.
             </motion.h2>
@@ -44,7 +44,7 @@ export function BenefitsSection() {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
-            className="text-xl text-muted-foreground font-light leading-relaxed max-w-md"
+            className="text-base sm:text-lg text-muted-foreground font-light leading-relaxed max-w-md"
           >
               RTM Class is designed as a complete learning operations platform
               that helps teams move quickly while keeping quality consistent.
@@ -52,7 +52,7 @@ export function BenefitsSection() {
           </div>
         </div>
 
-        <div className="md:w-1/2 space-y-12">
+        <div className="md:w-1/2 space-y-10 md:space-y-12">
           {benefits.map((item, i) => (
             <motion.div
               key={item.id}
@@ -66,10 +66,10 @@ export function BenefitsSection() {
                 <span className="w-8 h-[1px] bg-primary/50 group-hover:w-12 transition-all duration-300" />
                 {item.id}
               </div>
-              <h3 className="text-3xl font-bold mb-4 tracking-tight text-foreground group-hover:text-primary transition-colors duration-300">
+              <h3 className="text-2xl md:text-3xl font-bold mb-4 tracking-tight text-foreground group-hover:text-primary transition-colors duration-300">
                 {item.title}
               </h3>
-              <p className="text-lg text-muted-foreground font-light leading-relaxed">
+              <p className="text-base md:text-lg text-muted-foreground font-light leading-relaxed">
                 {item.desc}
               </p>
             </motion.div>

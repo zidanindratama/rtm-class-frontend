@@ -27,7 +27,7 @@ export function Testimonials() {
   return (
     <section
       id="testimonials"
-      className="py-32 px-4 md:px-8 bg-background relative overflow-hidden"
+      className="py-20 md:py-28 px-4 md:px-8 bg-background relative overflow-hidden"
     >
       <div className="absolute top-0 right-0 w-[50vw] h-[50vw] bg-primary/5 rounded-full blur-[150px] pointer-events-none" />
 
@@ -36,9 +36,9 @@ export function Testimonials() {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-20"
+          className="text-center mb-14 md:mb-20"
         >
-          <h2 className="text-4xl md:text-6xl font-extrabold tracking-tighter mb-4">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tighter mb-4">
             Trusted by Education Teams.
           </h2>
         </motion.div>
@@ -51,10 +51,10 @@ export function Testimonials() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.2, duration: 0.6, ease: "easeOut" }}
-              className="p-10 rounded-[2rem] bg-card border border-border/50 shadow-xl shadow-black/5 hover:-translate-y-2 transition-transform duration-500"
+              className="p-6 sm:p-8 md:p-10 rounded-[2rem] bg-card border border-border/50 shadow-xl shadow-black/5 hover:-translate-y-2 transition-transform duration-500"
             >
-              <p className="text-foreground text-lg leading-relaxed font-light mb-8">
-                "{review.content}"
+              <p className="text-foreground text-base sm:text-lg leading-relaxed font-light mb-6 md:mb-8">
+                &ldquo;{review.content}&rdquo;
               </p>
               <div className="pt-8 border-t border-border/50">
                 <h4 className="font-bold text-lg">{review.name}</h4>

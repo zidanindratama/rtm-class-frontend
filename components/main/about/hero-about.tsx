@@ -58,7 +58,7 @@ export function HeroAbout() {
       >
         <motion.h1
           variants={item}
-          className="text-5xl md:text-7xl lg:text-[5.5rem] font-extrabold tracking-tight text-foreground leading-[1.05] mb-8"
+          className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-foreground leading-[1.08] md:leading-[1.05] mb-6 md:mb-8"
         >
           Building Better <br className="hidden md:block" />
           Learning{" "}
@@ -69,7 +69,7 @@ export function HeroAbout() {
 
         <motion.p
           variants={item}
-          className="text-lg md:text-2xl text-muted-foreground max-w-3xl mb-14 font-light leading-relaxed"
+          className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-3xl mb-10 md:mb-14 font-light leading-relaxed"
         >
           RTM Class was built to help schools and educators run classes,
           assignments, discussions, and content workflows more effectively.
@@ -80,7 +80,7 @@ export function HeroAbout() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 2, duration: 1 }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
+        className="absolute bottom-6 md:bottom-8 left-1/2 -translate-x-1/2 hidden sm:flex flex-col items-center gap-2"
       >
         <div className="w-[1px] h-16 bg-gradient-to-b from-primary/50 to-transparent relative overflow-hidden">
           <motion.div

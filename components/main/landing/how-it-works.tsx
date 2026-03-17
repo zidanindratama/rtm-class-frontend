@@ -33,19 +33,19 @@ export function HowItWorks() {
   return (
     <section
       id="how-it-works"
-      className="overflow-x-clip py-32 px-4 md:px-8 bg-muted/20 border-y border-border/20"
+      className="overflow-x-clip py-20 md:py-28 px-4 md:px-8 bg-muted/20 border-y border-border/20"
     >
       <div className="max-w-4xl mx-auto" ref={containerRef}>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-24"
+          className="text-center mb-14 md:mb-24"
         >
-          <h2 className="text-4xl md:text-6xl font-extrabold tracking-tighter mb-6">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tighter mb-5 md:mb-6">
             Seamless Workflow.
           </h2>
-          <p className="text-xl text-muted-foreground font-light">
+          <p className="text-base sm:text-lg text-muted-foreground font-light">
             A practical learning workflow from setup to delivery and feedback.
           </p>
         </motion.div>
@@ -57,14 +57,14 @@ export function HowItWorks() {
             className="absolute left-8 md:left-1/2 top-0 w-[2px] bg-primary -translate-x-1/2 origin-top"
           />
 
-          <div className="space-y-24 overflow-x-clip">
+          <div className="space-y-16 md:space-y-24 overflow-x-clip">
             {steps.map((item, i) => (
               <div
                 key={item.step}
                 className={`relative flex flex-col md:flex-row items-center gap-8 md:gap-16 ${i % 2 !== 0 ? "md:flex-row-reverse" : ""}`}
               >
                 <div
-                  className={`flex-1 w-full ${i % 2 !== 0 ? "md:text-left" : "md:text-right"} pl-24 md:pl-0`}
+                  className={`flex-1 w-full ${i % 2 !== 0 ? "md:text-left" : "md:text-right"} pl-16 sm:pl-20 md:pl-0`}
                 >
                   <motion.div
                     initial={{ opacity: 0, x: i % 2 === 0 ? -50 : 50 }}
@@ -72,13 +72,13 @@ export function HowItWorks() {
                     viewport={{ once: true, margin: "-100px" }}
                     transition={{ duration: 0.7, ease: "easeOut" }}
                   >
-                    <span className="text-6xl md:text-8xl font-black text-foreground/5 tracking-tighter block mb-2">
+                    <span className="text-5xl md:text-7xl font-black text-foreground/5 tracking-tighter block mb-2">
                       {item.step}
                     </span>
                     <h3 className="text-2xl md:text-3xl font-bold tracking-tight mb-4">
                       {item.title}
                     </h3>
-                    <p className="text-muted-foreground text-lg font-light leading-relaxed">
+                    <p className="text-muted-foreground text-base md:text-lg font-light leading-relaxed">
                       {item.desc}
                     </p>
                   </motion.div>

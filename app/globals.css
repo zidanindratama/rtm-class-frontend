@@ -147,6 +147,12 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Hide Microsoft Edge native password reveal and clear buttons */
+  input[type="password"]::-ms-reveal,
+  input[type="password"]::-ms-clear {
+    display: none;
+  }
 }
 
 @layer components {

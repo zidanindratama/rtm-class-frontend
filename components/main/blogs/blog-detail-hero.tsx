@@ -64,7 +64,7 @@ export function BlogDetailHero({ id }: BlogDetailHeroProps) {
   const blog = detailResponse.data;
 
   return (
-    <section className="relative overflow-hidden border-b border-border/40 px-4 pb-12 pt-28 md:px-8 md:pb-16 md:pt-34">
+      <section className="relative overflow-hidden border-b border-border/40 px-4 pb-12 pt-24 md:px-8 md:pb-16 md:pt-34">
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_18%_20%,hsl(var(--primary)/0.14),transparent_35%)]" />
 
       <div className="mx-auto max-w-4xl">
@@ -79,7 +79,7 @@ export function BlogDetailHero({ id }: BlogDetailHeroProps) {
         <p className="mt-8 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
           Published Article
         </p>
-        <h1 className="mt-3 text-4xl font-bold tracking-tight md:text-6xl">
+        <h1 className="mt-3 text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">
           {blog.title}
         </h1>
         <p className="mt-6 text-base leading-relaxed text-muted-foreground md:text-lg">

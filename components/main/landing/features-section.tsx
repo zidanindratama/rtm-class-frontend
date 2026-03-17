@@ -7,10 +7,10 @@ export function FeaturesSection() {
   return (
     <section
       id="features"
-      className="py-32 px-4 md:px-8 relative z-10 bg-background"
+      className="py-20 md:py-28 px-4 md:px-8 relative z-10 bg-background"
     >
       <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row gap-12 mb-20 items-end">
+        <div className="flex flex-col md:flex-row gap-10 md:gap-12 mb-14 md:mb-20 items-end">
           <div className="flex-1">
             <motion.p
               initial={{ opacity: 0, y: 10 }}
@@ -25,7 +25,7 @@ export function FeaturesSection() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
-              className="text-4xl md:text-6xl font-extrabold tracking-tighter"
+              className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tighter"
             >
               Powerful Learning <br className="hidden md:block" /> Generators.
             </motion.h2>
@@ -35,7 +35,7 @@ export function FeaturesSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.2 }}
-            className="flex-1 text-lg text-muted-foreground leading-relaxed font-light"
+            className="flex-1 text-base sm:text-lg text-muted-foreground leading-relaxed font-light"
           >
             RTM Class combines learning operations and content workflows so
             teams can move faster without losing clarity, structure, or control.
@@ -48,7 +48,7 @@ export function FeaturesSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.7, ease: "easeOut" }}
-            className="md:col-span-2 relative group rounded-[2rem] bg-card border border-border/50 hover:border-primary/50 overflow-hidden transition-colors duration-500 min-h-[320px] md:min-h-0"
+            className="md:col-span-2 relative group rounded-[2rem] bg-card border border-border/50 hover:border-primary/50 overflow-hidden transition-colors duration-500 min-h-[280px] md:min-h-0"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="p-6 md:p-10 h-full flex flex-col justify-between relative z-10">
@@ -56,10 +56,10 @@ export function FeaturesSection() {
                 <CheckSquare className="w-8 h-8" />
               </div>
               <div>
-                <h3 className="text-3xl font-bold mb-4 tracking-tight">
+                <h3 className="text-2xl md:text-3xl font-bold mb-4 tracking-tight">
                   Assignment Workspace
                 </h3>
-                <p className="text-muted-foreground text-lg font-light leading-relaxed max-w-lg">
+                <p className="text-muted-foreground text-base md:text-lg font-light leading-relaxed max-w-lg">
                   Create, publish, close, and grade assignments with
                   class-aware workflows for teachers, students, and admins.
                 </p>
@@ -73,7 +73,7 @@ export function FeaturesSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.7, delay: 0.2, ease: "easeOut" }}
-            className="relative group rounded-[2rem] bg-card border border-border/50 hover:border-primary/50 overflow-hidden transition-colors duration-500 min-h-[320px] md:min-h-0"
+            className="relative group rounded-[2rem] bg-card border border-border/50 hover:border-primary/50 overflow-hidden transition-colors duration-500 min-h-[280px] md:min-h-0"
           >
             <div className="p-6 md:p-10 h-full flex flex-col justify-between relative z-10">
               <div className="w-16 h-16 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500 group-hover:scale-110 transition-all duration-500">
@@ -96,7 +96,7 @@ export function FeaturesSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.7, delay: 0.4, ease: "easeOut" }}
-            className="md:col-span-3 relative group rounded-[2rem] bg-card border border-border/50 hover:border-primary/50 overflow-hidden transition-colors duration-500 min-h-[320px] md:h-[320px]"
+            className="md:col-span-3 relative group rounded-[2rem] bg-card border border-border/50 hover:border-primary/50 overflow-hidden transition-colors duration-500 min-h-[280px] md:h-[320px]"
           >
             <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] group-hover:opacity-50 transition-opacity duration-500" />
             <div className="p-6 md:p-10 h-full flex flex-col md:flex-row items-start md:items-center gap-6 md:gap-8 relative z-10">

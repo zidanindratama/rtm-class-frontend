@@ -64,7 +64,7 @@ export function CtaSection({
             </Button>
           </Link>
 
-          {secondaryBtnText && (
+          {secondaryBtnText && secondaryBtnHref && (
             <Link href={secondaryBtnHref} className="w-full sm:w-auto">
               <Button
                 size="lg"

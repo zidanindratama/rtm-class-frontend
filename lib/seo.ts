@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const SITE_NAME = "RTM Class";
 export const SITE_URL =
   process.env.NEXT_PUBLIC_CLIENT_DOMAIN || "https://app.rtm-corndog.my.id";
-export const DEFAULT_OG_IMAGE = "/og-image.png";
+export const DEFAULT_OG_IMAGE = "/og-image.jpeg";
 
 type CreatePageMetadataInput = {
   title: string;

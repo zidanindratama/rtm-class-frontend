@@ -4,7 +4,7 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import TanStackProvider from "@/providers/tanstack-query-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
-import { SITE_URL } from "@/lib/seo";
+import { DEFAULT_OG_IMAGE, SITE_URL } from "@/lib/seo";
 import "./globals.css";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -57,7 +57,7 @@ export const metadata: Metadata = {
     siteName: "RTM Class",
     images: [
       {
-        url: "/og-image.jpeg",
+        url: DEFAULT_OG_IMAGE,
         width: 1200,
         height: 630,
         alt: "RTM Class platform preview",
@@ -69,7 +69,7 @@ export const metadata: Metadata = {
     title: "RTM Class | Modern Classroom, Simplified",
     description:
       "Live classes, smart materials, assignments, and collaboration in one place.",
-    images: ["/og-image.jpeg"],
+    images: [DEFAULT_OG_IMAGE],
   },
   robots: {
     index: true,

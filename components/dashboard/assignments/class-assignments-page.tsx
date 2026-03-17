@@ -10,6 +10,7 @@ import {
   FilePlus2,
   Search,
   Settings2,
+  Sparkles,
   Trash2,
   Users,
 } from "lucide-react";
@@ -55,6 +56,8 @@ import {
   EssayQuestionDraft,
   McqQuestionDraft,
 } from "./assignment-form-utils";
+import { AssignmentAiAssistantDialog } from "./assignment-ai-assistant-dialog";
+import type { AiTransformJobType, AssignmentAiDraft } from "./assignment-ai-utils";
 import { AssignmentQuestionBuilderSection } from "./assignment-question-builder-section";
 
 type ClassAssignmentsPageProps = {
@@ -70,6 +73,13 @@ function formatDateLabel(iso?: string | null) {
   return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(date);
 }
 
+function stripHtml(value: string) {
+  return value
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .trim();
+}
+
 export function ClassAssignmentsPage({
   classId,
   backHref,
@@ -83,6 +93,7 @@ export function ClassAssignmentsPage({
   const [page, setPage] = useState(1);
 
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showAiAssistant, setShowAiAssistant] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [assignmentType, setAssignmentType] = useState<AssignmentType>("TASK");
@@ -91,6 +102,13 @@ export function ClassAssignmentsPage({
   const [maxScore, setMaxScore] = useState("100");
   const [dueAt, setDueAt] = useState<Date | undefined>(undefined);
   const [contentHtml, setContentHtml] = useState("");
+  const [summaryText, setSummaryText] = useState("");
+  const [linkedMaterialId, setLinkedMaterialId] = useState<string | undefined>(undefined);
+  const [aiGeneratedOutputs, setAiGeneratedOutputs] = useState<AiTransformJobType[] | null>(null);
+  const [aiSourceMaterial, setAiSourceMaterial] = useState<{
+    title: string;
+    url: string;
+  } | null>(null);
   const [mcqQuestions, setMcqQuestions] = useState<McqQuestionDraft[]>([]);
   const [essayQuestions, setEssayQuestions] = useState<EssayQuestionDraft[]>([]);
   const [mcqBuilderPage, setMcqBuilderPage] = useState(1);
@@ -160,6 +178,25 @@ export function ClassAssignmentsPage({
     errorMessage: "Failed to load gradebook.",
   });
 
+  const resetCreateForm = () => {
+    setTitle("");
+    setDescription("");
+    setAssignmentType("TASK");
+    setAssignmentStatus("DRAFT");
+    setPassingScore("70");
+    setMaxScore("100");
+    setDueAt(undefined);
+    setContentHtml("");
+    setSummaryText("");
+    setLinkedMaterialId(undefined);
+    setAiGeneratedOutputs(null);
+    setAiSourceMaterial(null);
+    setMcqQuestions([]);
+    setEssayQuestions([]);
+    setMcqBuilderPage(1);
+    setEssayBuilderPage(1);
+  };
+
   const createMutation = usePostData<unknown, Record<string, unknown>>({
     key: ["assignments", "create", classId],
     endpoint: "/assignments",
@@ -169,16 +206,7 @@ export function ClassAssignmentsPage({
     options: {
       onSuccess: () => {
         setShowCreateForm(false);
-        setTitle("");
-        setDescription("");
-        setAssignmentType("TASK");
-        setAssignmentStatus("DRAFT");
-        setPassingScore("70");
-        setMaxScore("100");
-        setDueAt(undefined);
-        setContentHtml("");
-        setMcqQuestions([]);
-        setEssayQuestions([]);
+        resetCreateForm();
       },
     },
   });
@@ -220,9 +248,38 @@ export function ClassAssignmentsPage({
   const passingScoreValue = Number(passingScore || 0);
   const maxScoreValue = Number(maxScore || 0);
   const isScorePolicyValid = maxScoreValue >= 1 && passingScoreValue >= 0 && passingScoreValue <= maxScoreValue;
+  const isCreateDraftDirty =
+    title.trim().length > 0 ||
+    description.trim().length > 0 ||
+    stripHtml(contentHtml).length > 0 ||
+    summaryText.trim().length > 0 ||
+    assignmentType !== "TASK" ||
+    assignmentStatus !== "DRAFT" ||
+    passingScore !== "70" ||
+    maxScore !== "100" ||
+    Boolean(dueAt) ||
+    Boolean(linkedMaterialId) ||
+    mcqQuestions.some((question) =>
+      question.question.trim() ||
+      question.optionA.trim() ||
+      question.optionB.trim() ||
+      question.optionC.trim() ||
+      question.optionD.trim(),
+    ) ||
+    essayQuestions.some((question) => question.question.trim() || question.answerGuide.trim());
 
   const isMcqType = assignmentType === "QUIZ_MCQ";
   const isEssayType = assignmentType === "QUIZ_ESSAY";
+  const hasAiGeneratedOutputs = (aiGeneratedOutputs?.length ?? 0) > 0;
+  const showMcqBuilder = hasAiGeneratedOutputs
+    ? aiGeneratedOutputs?.includes("MCQ") ?? false
+    : isMcqType;
+  const showEssayBuilder = hasAiGeneratedOutputs
+    ? aiGeneratedOutputs?.includes("ESSAY") ?? false
+    : isEssayType;
+  const showSummaryBuilder = hasAiGeneratedOutputs
+    ? aiGeneratedOutputs?.includes("SUMMARY") ?? false
+    : false;
   const builderQuestionPerPage = 10;
   const mcqBuilderTotalPages = Math.max(1, Math.ceil(mcqQuestions.length / builderQuestionPerPage));
   const essayBuilderTotalPages = Math.max(1, Math.ceil(essayQuestions.length / builderQuestionPerPage));
@@ -231,13 +288,44 @@ export function ClassAssignmentsPage({
   const questionPayload = useMemo(
     () =>
       buildQuestionPayload({
-        isMcqType,
-        isEssayType,
+        isMcqType: showMcqBuilder,
+        isEssayType: showEssayBuilder,
         mcqQuestions,
         essayQuestions,
       }),
-    [essayQuestions, isEssayType, isMcqType, mcqQuestions],
+    [essayQuestions, mcqQuestions, showEssayBuilder, showMcqBuilder],
   );
+
+  const applyAiDraft = (draft: AssignmentAiDraft) => {
+    if (
+      isCreateDraftDirty &&
+      !window.confirm("Current assignment draft will be replaced with the AI-generated draft. Continue?")
+    ) {
+      return false;
+    }
+
+    setShowCreateForm(true);
+    setTitle(draft.title);
+    setDescription("");
+    setAssignmentType(draft.type);
+    setAssignmentStatus("DRAFT");
+    setPassingScore("70");
+    setMaxScore("100");
+    setDueAt(undefined);
+    setContentHtml(draft.contentHtml);
+    setSummaryText(draft.summaryText);
+    setLinkedMaterialId(draft.materialId);
+    setAiGeneratedOutputs(draft.outputs.length > 0 ? draft.outputs : null);
+    setAiSourceMaterial({
+      title: draft.sourceMaterialTitle,
+      url: draft.sourceMaterialUrl,
+    });
+    setMcqQuestions(draft.mcqQuestions);
+    setEssayQuestions(draft.essayQuestions);
+    setMcqBuilderPage(1);
+    setEssayBuilderPage(1);
+    return true;
+  };
 
   return (
     <section className="space-y-6">
@@ -323,7 +411,15 @@ export function ClassAssignmentsPage({
             </div>
 
             {canManage ? (
-              <div className="flex justify-end">
+              <div className="flex flex-wrap justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowAiAssistant(true)}
+                >
+                  <Sparkles className="h-4 w-4" />
+                  AI Assistant
+                </Button>
                 <Button
                   type="button"
                   variant={showCreateForm ? "outline" : "default"}
@@ -337,6 +433,28 @@ export function ClassAssignmentsPage({
 
             {showCreateForm ? (
               <div className="space-y-5 rounded-2xl border border-border/70 bg-muted/20 p-5 md:p-6">
+                {aiSourceMaterial ? (
+                  <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm">
+                    <p className="font-semibold text-foreground">AI draft source linked</p>
+                    <p className="mt-1 text-muted-foreground">
+                      This draft is linked to the source material{" "}
+                      {aiSourceMaterial.url.trim() ? (
+                        <a
+                          href={aiSourceMaterial.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-medium text-primary underline-offset-2 hover:underline"
+                        >
+                          {aiSourceMaterial.title}
+                        </a>
+                      ) : (
+                        <span className="font-medium text-foreground">{aiSourceMaterial.title}</span>
+                      )}
+                      .
+                    </p>
+                  </div>
+                ) : null}
+
                 <div className="rounded-xl border border-border/70 bg-background/80 p-4">
                   <p className="text-sm font-semibold">Assignment Overview</p>
                   <p className="mt-1 text-xs text-muted-foreground">
@@ -481,23 +599,82 @@ export function ClassAssignmentsPage({
                   />
                 </div>
 
-                <AssignmentQuestionBuilderSection
-                  assignmentType={assignmentType}
-                  mcqQuestions={mcqQuestions}
-                  essayQuestions={essayQuestions}
-                  setMcqQuestions={setMcqQuestions}
-                  setEssayQuestions={setEssayQuestions}
-                  mcqBuilderPage={activeMcqBuilderPage}
-                  essayBuilderPage={activeEssayBuilderPage}
-                  setMcqBuilderPage={setMcqBuilderPage}
-                  setEssayBuilderPage={setEssayBuilderPage}
-                  builderQuestionPerPage={builderQuestionPerPage}
-                  emptyMessage="No question added yet. Use the button above to add questions for this assignment type."
-                  optionalMessage="Question builder is optional for this assignment type. You can still write full instructions in the rich text editor above."
-                  titleDescription="Compose questions directly in this assignment so students can answer clearly."
-                  showMcqScoringControls
-                  showEssayPoints
-                />
+                {showMcqBuilder || showEssayBuilder ? (
+                  <div className="space-y-4">
+                    {showMcqBuilder ? (
+                      <AssignmentQuestionBuilderSection
+                        assignmentType="QUIZ_MCQ"
+                        mcqQuestions={mcqQuestions}
+                        essayQuestions={essayQuestions}
+                        setMcqQuestions={setMcqQuestions}
+                        setEssayQuestions={setEssayQuestions}
+                        mcqBuilderPage={activeMcqBuilderPage}
+                        essayBuilderPage={activeEssayBuilderPage}
+                        setMcqBuilderPage={setMcqBuilderPage}
+                        setEssayBuilderPage={setEssayBuilderPage}
+                        builderQuestionPerPage={builderQuestionPerPage}
+                        emptyMessage="No MCQ question added yet. Use the button above to add MCQ questions."
+                        optionalMessage="Question builder is optional for this assignment type. You can still write full instructions in the rich text editor above."
+                        titleDescription="Compose MCQ questions directly in this assignment."
+                        showMcqScoringControls
+                        showEssayPoints
+                      />
+                    ) : null}
+
+                    {showEssayBuilder ? (
+                      <AssignmentQuestionBuilderSection
+                        assignmentType="QUIZ_ESSAY"
+                        mcqQuestions={mcqQuestions}
+                        essayQuestions={essayQuestions}
+                        setMcqQuestions={setMcqQuestions}
+                        setEssayQuestions={setEssayQuestions}
+                        mcqBuilderPage={activeMcqBuilderPage}
+                        essayBuilderPage={activeEssayBuilderPage}
+                        setMcqBuilderPage={setMcqBuilderPage}
+                        setEssayBuilderPage={setEssayBuilderPage}
+                        builderQuestionPerPage={builderQuestionPerPage}
+                        emptyMessage="No essay question added yet. Use the button above to add essay questions."
+                        optionalMessage="Question builder is optional for this assignment type. You can still write full instructions in the rich text editor above."
+                        titleDescription="Compose essay questions directly in this assignment."
+                        showMcqScoringControls
+                        showEssayPoints
+                      />
+                    ) : null}
+                  </div>
+                ) : (
+                  <AssignmentQuestionBuilderSection
+                    assignmentType={assignmentType}
+                    mcqQuestions={mcqQuestions}
+                    essayQuestions={essayQuestions}
+                    setMcqQuestions={setMcqQuestions}
+                    setEssayQuestions={setEssayQuestions}
+                    mcqBuilderPage={activeMcqBuilderPage}
+                    essayBuilderPage={activeEssayBuilderPage}
+                    setMcqBuilderPage={setMcqBuilderPage}
+                    setEssayBuilderPage={setEssayBuilderPage}
+                    builderQuestionPerPage={builderQuestionPerPage}
+                    emptyMessage="No question added yet. Use the button above to add questions for this assignment type."
+                    optionalMessage="Question builder is optional for this assignment type. You can still write full instructions in the rich text editor above."
+                    titleDescription="Compose questions directly in this assignment so students can answer clearly."
+                    showMcqScoringControls
+                    showEssayPoints
+                  />
+                )}
+
+                {showSummaryBuilder ? (
+                  <div className="rounded-xl border border-border/70 bg-background/80 p-4">
+                    <p className="text-sm font-semibold">Summary</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Review and edit the generated summary before saving this assignment.
+                    </p>
+                    <Textarea
+                      value={summaryText}
+                      onChange={(event) => setSummaryText(event.target.value)}
+                      placeholder="Summary text"
+                      className="mt-3 min-h-[140px]"
+                    />
+                  </div>
+                ) : null}
 
                 <div className="flex justify-end border-t border-border/60 pt-4">
                   <Button
@@ -507,6 +684,7 @@ export function ClassAssignmentsPage({
                         classId,
                         title: title.trim(),
                         description: description.trim() || undefined,
+                        materialId: linkedMaterialId,
                         type: assignmentType,
                         status: assignmentStatus,
                         passingScore: passingScoreValue || 0,
@@ -514,6 +692,7 @@ export function ClassAssignmentsPage({
                         dueAt: dueAt?.toISOString(),
                         content: {
                           richTextHtml: contentHtml,
+                          summary: showSummaryBuilder ? summaryText.trim() || undefined : undefined,
                           questionSet: questionPayload,
                         },
                       })
@@ -769,6 +948,13 @@ export function ClassAssignmentsPage({
           setPendingDeleteId(null);
           deleteMutation.mutate({ id });
         }}
+      />
+
+      <AssignmentAiAssistantDialog
+        open={showAiAssistant}
+        onOpenChange={setShowAiAssistant}
+        classId={classId}
+        onApplyDraft={applyAiDraft}
       />
     </section>
   );

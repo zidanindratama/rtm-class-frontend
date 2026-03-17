@@ -17,6 +17,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useGetData } from "@/hooks/use-get-data";
 import { APIListResponse, APISingleResponse } from "@/types/api-response";
 import { ClassDetailResponse } from "@/components/dashboard/classes/class-types";
+import { authTokenStorage } from "@/lib/axios-instance";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -112,6 +113,8 @@ export function ClassMaterialsPage({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const currentRole = authTokenStorage.getUserRole();
+  const canManageMaterial = currentRole === "ADMIN" || currentRole === "TEACHER";
 
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<MaterialSortByOption>("all");
@@ -248,17 +251,19 @@ export function ClassMaterialsPage({
       </div>
 
       <div className="mx-auto">
-        <div className="flex my-3">
-          <Button className="ml-auto" asChild>
-            <Link
-              href={`/dashboard/my-class/${classId}/materials/create`}
-              className="inline-flex items-center gap-2"
-            >
-              <PlusIcon className="h-4 w-4" />
-              Add New Material
-            </Link>
-          </Button>
-        </div>
+        {canManageMaterial ? (
+          <div className="flex my-3">
+            <Button className="ml-auto" asChild>
+              <Link
+                href={`/dashboard/my-class/${classId}/materials/create`}
+                className="inline-flex items-center gap-2"
+              >
+                <PlusIcon className="h-4 w-4" />
+                Add New Material
+              </Link>
+            </Button>
+          </div>
+        ) : null}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -433,12 +438,21 @@ export function ClassMaterialsPage({
                     </div>
 
                     <div className="mt-6 flex items-center justify-between border-t border-border/60 pt-3">
-                      <Link
-                        href={`/dashboard/my-class/${classId}/materials/${material.id}/edit`}
-                        className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary hover:underline underline-offset-3"
-                      >
-                        Material Detail
-                      </Link>
+                      {canManageMaterial ? (
+                        <Link
+                          href={`/dashboard/my-class/${classId}/materials/${material.id}/edit`}
+                          className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary hover:underline underline-offset-3"
+                        >
+                          Material Detail
+                        </Link>
+                      ) : (
+                        <Link
+                          href={`/dashboard/my-class/${classId}/materials/${material.id}/edit`}
+                          className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary hover:underline underline-offset-3"
+                        >
+                          View Detail
+                        </Link>
+                      )}
                       {sourceUrl ? (
                         <Link
                           href={sourceUrl}

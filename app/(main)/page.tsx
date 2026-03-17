@@ -1,5 +1,3 @@
-import { Navbar } from "@/components/main/common/navbar";
-import { Footer } from "@/components/main/common/footer";
 import { HeroSection } from "@/components/main/landing/hero-section";
 import { ClientLogos } from "@/components/main/landing/client-logos";
 import { FeaturesSection } from "@/components/main/landing/features-section";
@@ -8,6 +6,21 @@ import { InteractiveDemo } from "@/components/main/landing/interactive-demo";
 import { BenefitsSection } from "@/components/main/landing/benefits-section";
 import { Testimonials } from "@/components/main/landing/testimonials";
 import { CtaSection } from "@/components/main/landing/cta-section";
+import type { Metadata } from "next";
+import { createPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = createPageMetadata({
+  title: "Modern Classroom, Simplified",
+  description:
+    "Run live classes, manage assignments, publish materials, and collaborate faster with RTM Class.",
+  path: "/",
+  keywords: [
+    "classroom platform",
+    "learning management system",
+    "online class tools",
+    "teacher workflow",
+  ],
+});
 
 export default function Home() {
   return (

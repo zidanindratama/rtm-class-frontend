@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import {
   ArrowUpRight,
   CalendarDays,
+  EllipsisIcon,
   GraduationCap,
   PlusIcon,
   Search,
@@ -21,6 +22,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { PaginationWithLinks } from "@/components/ui/pagination-with-link";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { DeleteDialog } from "@/components/globals/dialog/delete-dialog";
 import { authTokenStorage } from "@/lib/axios-instance";
 import {
@@ -351,7 +360,7 @@ export function MyClassGrid() {
                       </span>
                     </div>
 
-                    <div className="mt-6 flex flex-wrap items-center gap-3">
+                    <div className="mt-6 flex items-center justify-between gap-3">
                       <Link
                         className="inline-flex items-center gap-2 text-sm font-medium text-foreground transition-colors group-hover:text-primary hover:underline underline-offset-3"
                         href={`/dashboard/my-class/${cls.id}`}
@@ -359,39 +368,40 @@ export function MyClassGrid() {
                         View Class
                         <ArrowUpRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                       </Link>
-                      <Link
-                        className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary hover:underline underline-offset-3"
-                        href={`/dashboard/my-class/${cls.id}/forums`}
-                      >
-                        Open Forum
-                        <ArrowUpRight className="h-4 w-4" />
-                      </Link>
-                      <Link
-                        className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary hover:underline underline-offset-3"
-                        href={`/dashboard/my-class/${cls.id}/assignments`}
-                      >
-                        Assignments
-                        <ArrowUpRight className="h-4 w-4" />
-                      </Link>
-                      {canManageClass ? (
-                        <Link
-                          className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary hover:underline underline-offset-3"
-                          href={`/dashboard/classes/${cls.id}/edit`}
-                        >
-                          Edit Class
-                          <ArrowUpRight className="h-4 w-4" />
-                        </Link>
-                      ) : null}
-                      {canManageClass ? (
-                        <button
-                          type="button"
-                          onClick={() => setClassPendingDelete(cls)}
-                          className="inline-flex items-center gap-2 text-sm font-medium text-destructive transition-colors hover:underline underline-offset-3 disabled:cursor-not-allowed disabled:opacity-60"
-                          disabled={deleteClassMutation.isPending}
-                        >
-                          Delete Class
-                        </button>
-                      ) : null}
+
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button type="button" variant="ghost" className="h-8 w-8 p-0">
+                            <EllipsisIcon className="h-4 w-4" />
+                            <span className="sr-only">Open actions</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem asChild>
+                            <Link href={`/dashboard/my-class/${cls.id}/forums`}>Open Forum</Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link href={`/dashboard/my-class/${cls.id}/assignments`}>Assignments</Link>
+                          </DropdownMenuItem>
+                          {canManageClass ? (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem asChild>
+                                <Link href={`/dashboard/classes/${cls.id}/edit`}>Edit Class</Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                variant="destructive"
+                                onSelect={() => setClassPendingDelete(cls)}
+                                disabled={deleteClassMutation.isPending}
+                              >
+                                Delete Class
+                              </DropdownMenuItem>
+                            </>
+                          ) : null}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </motion.article>
                 );

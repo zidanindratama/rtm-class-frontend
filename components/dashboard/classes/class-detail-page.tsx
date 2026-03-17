@@ -66,7 +66,7 @@ function formatDateLabel(iso: string) {
 
 export function ClassDetailPage({
   classId,
-  backHref = "/dashboard/classes",
+  backHref,
   backLabel = "Back to class list",
   usageDescription = "Use this page to monitor class health and members.",
   enableStudentLeave = false,
@@ -153,15 +153,24 @@ export function ClassDetailPage({
 
   const classData = classDetailResponse.data;
   const currentRole: AuthRole | null = authTokenStorage.getUserRole();
+  const isTeacher = currentRole === "TEACHER";
+  const resolvedBackHref =
+    backHref ?? (isTeacher ? "/dashboard/my-class" : "/dashboard/classes");
   const canLeaveClass = enableStudentLeave && currentRole === "STUDENT";
   const canManageClass = currentRole === "ADMIN" || currentRole === "TEACHER";
   const resolvedMembersHref =
-    membersHref ?? `/dashboard/classes/${classId}/members`;
+    membersHref ??
+    (isTeacher
+      ? `/dashboard/my-class/${classId}/members`
+      : `/dashboard/classes/${classId}/members`);
   const resolvedForumsHref = forumsHref ?? `/dashboard/my-class/${classId}/forums`;
   const resolvedAssignmentsHref =
     assignmentsHref ?? `/dashboard/my-class/${classId}/assignments`;
   const resolvedMaterialsHref =
     materialsHref ?? `/dashboard/my-class/${classId}/materials`;
+  const canOpenForum = showForumButton || isTeacher;
+  const canOpenAssignments = showAssignmentsButton || isTeacher;
+  const canOpenMaterials = showMaterialsButton || isTeacher;
 
   const stats = [
     {
@@ -201,7 +210,7 @@ export function ClassDetailPage({
     <section className="space-y-6">
       <div className="space-y-2">
         <Link
-          href={backHref}
+          href={resolvedBackHref}
           className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -252,7 +261,7 @@ export function ClassDetailPage({
                   </p>
                 </Link>
 
-                {showForumButton ? (
+                {canOpenForum ? (
                   <Link
                     href={resolvedForumsHref}
                     className="group rounded-xl border border-border/70 bg-card/70 p-4 transition-colors hover:border-primary/40"
@@ -268,7 +277,7 @@ export function ClassDetailPage({
                   </Link>
                 ) : null}
 
-                {showAssignmentsButton ? (
+                {canOpenAssignments ? (
                   <Link
                     href={resolvedAssignmentsHref}
                     className="group rounded-xl border border-border/70 bg-card/70 p-4 transition-colors hover:border-primary/40"
@@ -284,7 +293,7 @@ export function ClassDetailPage({
                   </Link>
                 ) : null}
 
-                {showMaterialsButton ? (
+                {canOpenMaterials ? (
                   <Link
                     href={resolvedMaterialsHref}
                     className="group rounded-xl border border-border/70 bg-card/70 p-4 transition-colors hover:border-primary/40"

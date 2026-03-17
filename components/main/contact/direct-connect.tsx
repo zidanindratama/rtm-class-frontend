@@ -16,7 +16,7 @@ const contacts = [
     value: "github.com/laponGacor",
     link: "https://github.com",
   },
-  { icon: MapPin, label: "HQ", value: "Bekasi, Indonesia", link: "#" },
+  { icon: MapPin, label: "HQ", value: "Depok, Indonesia", link: "#" },
 ];
 
 export function DirectConnect() {

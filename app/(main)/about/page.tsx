@@ -6,6 +6,16 @@ import { MeetTheTeam } from "@/components/main/about/meet-the-team";
 import { Milestones } from "@/components/main/about/milestones";
 import { ImpactStats } from "@/components/main/about/impact-stats";
 import { CtaSection } from "@/components/main/landing/cta-section";
+import type { Metadata } from "next";
+import { createPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = createPageMetadata({
+  title: "About RTM Class",
+  description:
+    "Learn how RTM Class helps schools and educators modernize classroom operations end-to-end.",
+  path: "/about",
+  keywords: ["about rtm class", "education platform", "classroom operations"],
+});
 
 export default function AboutPage() {
   return (

@@ -4,6 +4,16 @@ import { WorkflowOperatingLanes } from "@/components/main/how-it-works/workflow-
 import { WorkflowServiceLevels } from "@/components/main/how-it-works/workflow-service-levels";
 import { WorkflowFaq } from "@/components/main/how-it-works/workflow-faq";
 import { WorkflowCta } from "@/components/main/how-it-works/workflow-cta";
+import type { Metadata } from "next";
+import { createPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = createPageMetadata({
+  title: "How It Works",
+  description:
+    "See how RTM Class streamlines teaching workflows from class planning to assignments and feedback.",
+  path: "/how-it-works",
+  keywords: ["how rtm class works", "teaching workflow", "classroom process"],
+});
 
 export default function HowItWorksPage() {
   return (

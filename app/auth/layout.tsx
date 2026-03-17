@@ -1,3 +1,13 @@
+import type { Metadata } from "next";
+import { createPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = createPageMetadata({
+  title: "Authentication",
+  description: "Access your RTM Class account to manage classes and learning workflows.",
+  path: "/auth/sign-in",
+  noIndex: true,
+});
+
 export default function AuthLayout({
   children,
 }: {

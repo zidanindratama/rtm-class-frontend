@@ -20,7 +20,7 @@ export function LocationHq() {
             <MapPin className="w-8 h-8" />
           </div>
           <h3 className="text-3xl md:text-5xl font-extrabold tracking-tight mb-4">
-            Jakarta Metropolitan Area, Indonesia
+            Depok, Indonesia
           </h3>
           <p className="text-lg text-muted-foreground max-w-xl mx-auto">
             Our headquarters coordinates product, infrastructure, and support

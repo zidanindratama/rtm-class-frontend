@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -25,12 +26,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
-import { ASSIGNMENT_TYPE_LABELS } from "./assignment-types";
 import {
   type AiTransformJob,
   type AiTransformJobType,
   type AiTransformResponse,
   type AssignmentAiDraft,
+  extractSummaryTextFromOutput,
   type MaterialAiOutput,
   mapAiOutputToAssignmentDraft,
 } from "./assignment-ai-utils";
@@ -41,8 +42,6 @@ type AssignmentAiAssistantDialogProps = {
   classId: string;
   onApplyDraft: (draft: AssignmentAiDraft) => boolean;
 };
-
-type AssignmentAiTargetType = "QUIZ_MCQ" | "QUIZ_ESSAY";
 
 type SourceMaterialOption = {
   id: string;
@@ -60,6 +59,7 @@ const JOB_POLL_INTERVAL_MS = 3000;
 const JOB_POLL_MAX_ATTEMPTS = 40;
 const OUTPUT_FETCH_RETRIES = 5;
 const OUTPUT_FETCH_INTERVAL_MS = 2000;
+const OUTPUT_OPTIONS: AiTransformJobType[] = ["MCQ", "ESSAY", "SUMMARY"];
 
 const sleep = (delayMs: number) =>
   new Promise<void>((resolve) => {
@@ -146,9 +146,11 @@ export function AssignmentAiAssistantDialog({
   classId,
   onApplyDraft,
 }: AssignmentAiAssistantDialogProps) {
-  const [assignmentType, setAssignmentType] = useState<AssignmentAiTargetType>("QUIZ_MCQ");
   const [assignmentTitle, setAssignmentTitle] = useState("");
-  const [questionCount, setQuestionCount] = useState("10");
+  const [selectedOutputs, setSelectedOutputs] = useState<AiTransformJobType[]>(["MCQ"]);
+  const [mcqCount, setMcqCount] = useState("10");
+  const [essayCount, setEssayCount] = useState("5");
+  const [summaryMaxWords, setSummaryMaxWords] = useState("200");
   const [selectedMaterialId, setSelectedMaterialId] = useState("");
   const [processingStage, setProcessingStage] = useState("");
 
@@ -185,45 +187,126 @@ export function AssignmentAiAssistantDialog({
         throw new Error("Assignment title must be at least 3 characters.");
       }
 
-      const parsedQuestionCount = Number(questionCount);
-      if (!Number.isInteger(parsedQuestionCount) || parsedQuestionCount < 1 || parsedQuestionCount > 100) {
-        throw new Error("Question count must be between 1 and 100.");
+      if (selectedOutputs.length === 0) {
+        throw new Error("Select at least one output type.");
       }
 
-      const outputType: AiTransformJobType = assignmentType === "QUIZ_MCQ" ? "MCQ" : "ESSAY";
+      const mcqSelected = selectedOutputs.includes("MCQ");
+      const essaySelected = selectedOutputs.includes("ESSAY");
+      const summarySelected = selectedOutputs.includes("SUMMARY");
+
+      const parsedMcqCount = Number(mcqCount);
+      if (
+        mcqSelected
+        && (!Number.isInteger(parsedMcqCount) || parsedMcqCount < 1 || parsedMcqCount > 100)
+      ) {
+        throw new Error("MCQ count must be between 1 and 100.");
+      }
+
+      const parsedEssayCount = Number(essayCount);
+      if (
+        essaySelected
+        && (!Number.isInteger(parsedEssayCount) || parsedEssayCount < 1 || parsedEssayCount > 100)
+      ) {
+        throw new Error("Essay count must be between 1 and 100.");
+      }
+
+      const parsedSummaryMaxWords = Number(summaryMaxWords);
+      if (
+        summarySelected
+        && (!Number.isInteger(parsedSummaryMaxWords) || parsedSummaryMaxWords < 50 || parsedSummaryMaxWords > 2000)
+      ) {
+        throw new Error("Summary max words must be between 50 and 2000.");
+      }
 
       setProcessingStage("Queueing AI job...");
       const transformResponse = await axiosInstance.post<APISingleResponse<AiTransformResponse>>(
         "/ai/jobs/transform",
         {
           materialId: selectedMaterial.id,
-          outputs: [outputType],
-          options:
-            outputType === "MCQ"
-              ? { mcqCount: parsedQuestionCount }
-              : { essayCount: parsedQuestionCount },
+          outputs: selectedOutputs,
+          options: {
+            mcqCount: Number.isInteger(parsedMcqCount) ? parsedMcqCount : 10,
+            essayCount: Number.isInteger(parsedEssayCount) ? parsedEssayCount : 5,
+            summaryMaxWords: Number.isInteger(parsedSummaryMaxWords) ? parsedSummaryMaxWords : 200,
+            mcpEnabled: true,
+          },
         },
       );
 
-      const createdJob = transformResponse.data.data.jobs.find((job) => job.type === outputType);
-      if (!createdJob) {
-        throw new Error("AI job was queued but no matching job was returned.");
+      const queuedJobs = transformResponse.data.data.jobs ?? [];
+      const generatedOutputs: MaterialAiOutput[] = [];
+
+      for (const selectedOutput of selectedOutputs) {
+        const createdJob = queuedJobs.find((job) => job.type === selectedOutput);
+        if (!createdJob) {
+          throw new Error(`AI job for ${selectedOutput} was queued but no matching job was returned.`);
+        }
+
+        setProcessingStage(`Generating ${selectedOutput} output...`);
+        const job = await pollUntilJobTerminal(createdJob.id);
+        if (job.status !== "succeeded") {
+          throw new Error(job.lastError?.trim() || `AI ${selectedOutput} job failed.`);
+        }
+
+        const output = await fetchMaterialOutput(selectedMaterial.id, createdJob.id, selectedOutput);
+        generatedOutputs.push(output);
       }
 
-      const job = await pollUntilJobTerminal(createdJob.id);
-      if (job.status !== "succeeded") {
-        throw new Error(job.lastError?.trim() || "AI job failed.");
+      let generatedType: AssignmentAiDraft["type"] = "TASK";
+      if (selectedOutputs.includes("MCQ")) {
+        generatedType = "QUIZ_MCQ";
+      } else if (selectedOutputs.includes("ESSAY")) {
+        generatedType = "QUIZ_ESSAY";
       }
 
-      const output = await fetchMaterialOutput(selectedMaterial.id, createdJob.id, outputType);
+      let generatedHtml = "";
+      let generatedSummary = "";
+      let generatedMcqQuestions: AssignmentAiDraft["mcqQuestions"] = [];
+      let generatedEssayQuestions: AssignmentAiDraft["essayQuestions"] = [];
 
-      return mapAiOutputToAssignmentDraft({
-        output,
-        assignmentTitle: trimmedTitle,
+      for (const output of generatedOutputs) {
+        if (output.type === "MCQ" || output.type === "ESSAY") {
+          const mappedDraft = mapAiOutputToAssignmentDraft({
+            output,
+            assignmentTitle: trimmedTitle,
+            materialId: selectedMaterial.id,
+            sourceMaterialTitle: selectedMaterial.title,
+            sourceMaterialUrl: getMaterialFileUrl(selectedMaterial),
+          });
+
+          if (output.type === "MCQ") {
+            generatedMcqQuestions = mappedDraft.mcqQuestions;
+          }
+
+          if (output.type === "ESSAY") {
+            generatedEssayQuestions = mappedDraft.essayQuestions;
+          }
+
+          if (!generatedHtml.trim() && mappedDraft.contentHtml.trim()) {
+            generatedHtml = mappedDraft.contentHtml;
+          }
+
+          continue;
+        }
+
+        if (output.type === "SUMMARY") {
+          generatedSummary = extractSummaryTextFromOutput(output);
+        }
+      }
+
+      return {
+        title: trimmedTitle,
+        type: generatedType,
         materialId: selectedMaterial.id,
         sourceMaterialTitle: selectedMaterial.title,
         sourceMaterialUrl: getMaterialFileUrl(selectedMaterial),
-      });
+        contentHtml: generatedHtml,
+        mcqQuestions: generatedMcqQuestions,
+        essayQuestions: generatedEssayQuestions,
+        summaryText: generatedSummary,
+        outputs: [...selectedOutputs],
+      };
     },
     onSuccess: (draft) => {
       const applied = onApplyDraft(draft);
@@ -241,9 +324,11 @@ export function AssignmentAiAssistantDialog({
   });
 
   const resetDialogState = () => {
-    setAssignmentType("QUIZ_MCQ");
     setAssignmentTitle("");
-    setQuestionCount("10");
+    setSelectedOutputs(["MCQ"]);
+    setMcqCount("10");
+    setEssayCount("5");
+    setSummaryMaxWords("200");
     setSelectedMaterialId("");
     setProcessingStage("");
     assistantMutation.reset();
@@ -410,38 +495,74 @@ export function AssignmentAiAssistantDialog({
             </div>
           ) : null}
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="ai-assignment-type">Draft Type</Label>
-              <Select
-                value={assignmentType}
-                onValueChange={(value) => {
-                  const nextType = value as AssignmentAiTargetType;
-                  setAssignmentType(nextType);
-                  setQuestionCount(nextType === "QUIZ_MCQ" ? "10" : "5");
-                }}
-                disabled={pending}
-              >
-                <SelectTrigger id="ai-assignment-type">
-                  <SelectValue placeholder="Choose assignment type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="QUIZ_MCQ">{ASSIGNMENT_TYPE_LABELS.QUIZ_MCQ}</SelectItem>
-                  <SelectItem value="QUIZ_ESSAY">{ASSIGNMENT_TYPE_LABELS.QUIZ_ESSAY}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label>Outputs</Label>
+            <div className="grid gap-2 rounded-lg border border-border/70 bg-muted/20 p-3 sm:grid-cols-3">
+              {OUTPUT_OPTIONS.map((output) => (
+                <label
+                  key={output}
+                  className="inline-flex items-center gap-2 rounded-md border border-border/60 bg-background/70 px-3 py-2 text-sm"
+                >
+                  <Checkbox
+                    checked={selectedOutputs.includes(output)}
+                    onCheckedChange={(checked) => {
+                      const shouldEnable = checked === true;
+                      setSelectedOutputs((current) => {
+                        if (shouldEnable) {
+                          return current.includes(output) ? current : [...current, output];
+                        }
 
+                        return current.filter((item) => item !== output);
+                      });
+                    }}
+                    disabled={pending}
+                  />
+                  {output}
+                </label>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Select one or more outputs. Generated MCQ, Essay, and Summary sections will be applied to the form.
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="ai-question-count">Question Count</Label>
+              <Label htmlFor="ai-mcq-count">MCQ Count</Label>
               <Input
-                id="ai-question-count"
+                id="ai-mcq-count"
                 type="number"
                 min={1}
                 max={100}
-                value={questionCount}
-                onChange={(event) => setQuestionCount(event.target.value)}
-                disabled={pending}
+                value={mcqCount}
+                onChange={(event) => setMcqCount(event.target.value)}
+                disabled={pending || !selectedOutputs.includes("MCQ")}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="ai-essay-count">Essay Count</Label>
+              <Input
+                id="ai-essay-count"
+                type="number"
+                min={1}
+                max={100}
+                value={essayCount}
+                onChange={(event) => setEssayCount(event.target.value)}
+                disabled={pending || !selectedOutputs.includes("ESSAY")}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="ai-summary-max-words">Summary Max Words</Label>
+              <Input
+                id="ai-summary-max-words"
+                type="number"
+                min={50}
+                max={2000}
+                value={summaryMaxWords}
+                onChange={(event) => setSummaryMaxWords(event.target.value)}
+                disabled={pending || !selectedOutputs.includes("SUMMARY")}
               />
             </div>
           </div>
@@ -490,7 +611,13 @@ export function AssignmentAiAssistantDialog({
           <Button
             type="button"
             onClick={() => assistantMutation.mutate()}
-            disabled={pending || materialsQuery.isLoading || materialsQuery.isError || !selectedMaterialId}
+            disabled={
+              pending
+              || materialsQuery.isLoading
+              || materialsQuery.isError
+              || !selectedMaterialId
+              || selectedOutputs.length === 0
+            }
           >
             {pending ? (
               <>

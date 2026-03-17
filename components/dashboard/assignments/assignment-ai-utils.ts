@@ -9,7 +9,7 @@ export type AiJobStatus =
   | "failed_processing"
   | "failed_delivery";
 
-export type AiTransformJobType = "MCQ" | "ESSAY";
+export type AiTransformJobType = "MCQ" | "ESSAY" | "SUMMARY";
 
 export type AiTransformJob = {
   id: string;
@@ -52,13 +52,15 @@ export type MaterialAiOutput = {
 
 export type AssignmentAiDraft = {
   title: string;
-  type: "QUIZ_MCQ" | "QUIZ_ESSAY";
+  type: "QUIZ_MCQ" | "QUIZ_ESSAY" | "TASK";
   materialId: string;
   sourceMaterialTitle: string;
   sourceMaterialUrl: string;
   contentHtml: string;
   mcqQuestions: McqQuestionDraft[];
   essayQuestions: EssayQuestionDraft[];
+  summaryText: string;
+  outputs: AiTransformJobType[];
 };
 
 type GenericRecord = Record<string, unknown>;
@@ -113,6 +115,20 @@ const resolveInstructionsHtml = (payload: GenericRecord) => {
   return "";
 };
 
+const resolveSummaryText = (payload: GenericRecord) => {
+  const directSummary = getString(payload, ["summary", "text", "instruction", "instructions", "description"]);
+  if (directSummary) {
+    return directSummary;
+  }
+
+  const nestedContent = payload.content;
+  if (isRecord(nestedContent)) {
+    return getString(nestedContent, ["summary", "text", "instruction", "instructions", "description"]);
+  }
+
+  return "";
+};
+
 const resolveQuestions = (payload: GenericRecord) => {
   const directQuestions = payload.questions;
   if (Array.isArray(directQuestions)) {
@@ -130,6 +146,10 @@ const resolveQuestions = (payload: GenericRecord) => {
 
   return [];
 };
+
+export function extractSummaryTextFromOutput(output: MaterialAiOutput): string {
+  return resolveSummaryText(normalizePayload(output));
+}
 
 const resolveOptions = (value: unknown): [string, string, string, string] | null => {
   if (Array.isArray(value)) {
@@ -199,6 +219,10 @@ export function mapAiOutputToAssignmentDraft(params: {
   const instructionsHtml = resolveInstructionsHtml(payload);
   const questions = resolveQuestions(payload);
 
+  if (output.type === "SUMMARY") {
+    throw new Error("AI summary output cannot be converted to an assignment draft.");
+  }
+
   if (output.type === "MCQ") {
     const mcqQuestions = questions
       .map((item, index) => {
@@ -247,7 +271,13 @@ export function mapAiOutputToAssignmentDraft(params: {
       contentHtml: instructionsHtml,
       mcqQuestions,
       essayQuestions: [],
+      summaryText: "",
+      outputs: ["MCQ"],
     };
+  }
+
+  if (output.type !== "ESSAY") {
+    throw new Error("Unsupported AI output type for assignment draft mapping.");
   }
 
   const essayQuestions = questions
@@ -287,5 +317,7 @@ export function mapAiOutputToAssignmentDraft(params: {
     contentHtml: instructionsHtml,
     mcqQuestions: [],
     essayQuestions,
+    summaryText: "",
+    outputs: ["ESSAY"],
   };
 }

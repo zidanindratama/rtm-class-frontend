@@ -32,14 +32,17 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
-  SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
 import {
   dashboardNavByRole,
   type DashboardItem,
   type DashboardRole,
+  type DashboardSubItem,
 } from "@/routes/dashboard-routes";
+import { useGetData } from "@/hooks/use-get-data";
+import type { APIListResponse } from "@/types/api-response";
+import type { ClassDetailResponse } from "@/components/dashboard/classes/class-types";
 import { cn } from "@/lib/utils";
 
 const iconByKey: Record<
@@ -56,6 +59,8 @@ const iconByKey: Record<
 
 const normalizePath = (path: string) =>
   path.length > 1 && path.endsWith("/") ? path.slice(0, -1) : path;
+
+const MY_CLASS_PATH = "/dashboard/my-class";
 
 const isPathActive = (currentPath: string, targetPath: string) => {
   const normalizedCurrentPath = normalizePath(currentPath);
@@ -84,6 +89,17 @@ const getActiveChildHref = (
   return matchingChildren[0]?.href ?? null;
 };
 
+const toClassMenuLabel = (classItem: ClassDetailResponse) => {
+  const className = classItem.name?.trim();
+  const classCode = classItem.classCode?.trim();
+
+  if (className && classCode) {
+    return `${className} (${classCode})`;
+  }
+
+  return className || classCode || "Untitled Class";
+};
+
 type AppSidebarProps = React.ComponentProps<typeof Sidebar> & {
   role: DashboardRole;
 };
@@ -91,6 +107,57 @@ type AppSidebarProps = React.ComponentProps<typeof Sidebar> & {
 export function AppSidebar({ role, ...props }: AppSidebarProps) {
   const pathname = usePathname();
   const items = useMemo(() => dashboardNavByRole[role], [role]);
+  const hasMyClassEntry = useMemo(
+    () =>
+      items.some(
+        (item) =>
+          item.href === MY_CLASS_PATH ||
+          item.children?.some((child) => child.href === MY_CLASS_PATH),
+      ),
+    [items],
+  );
+  const { data: myClassResponse } = useGetData<
+    APIListResponse<ClassDetailResponse>
+  >({
+    key: ["sidebar", "my-class"],
+    endpoint: "/classes",
+    extractData: false,
+    enabled: hasMyClassEntry,
+    params: {
+      page: 1,
+      per_page: 50,
+      sort_by: "name",
+      sort_order: "asc",
+    },
+    errorMessage: "Failed to load classes.",
+    options: {
+      staleTime: 60_000,
+    },
+  });
+  const classDetailChildren = useMemo<DashboardSubItem[]>(
+    () =>
+      (myClassResponse?.data ?? []).map((classItem) => ({
+        label: toClassMenuLabel(classItem),
+        href: `${MY_CLASS_PATH}/${classItem.id}`,
+      })),
+    [myClassResponse?.data],
+  );
+  const myClassNestedChildren = useMemo<DashboardSubItem[]>(
+    () => [{ label: "All My Classes", href: MY_CLASS_PATH }, ...classDetailChildren],
+    [classDetailChildren],
+  );
+  const resolvedItems = useMemo<DashboardItem[]>(() => {
+    return items.map((item) => {
+      if (item.href === MY_CLASS_PATH) {
+        return {
+          ...item,
+          children: myClassNestedChildren,
+        };
+      }
+
+      return item;
+    });
+  }, [items, myClassNestedChildren]);
   const [menuOverrides, setMenuOverrides] = useState<Record<string, boolean>>(
     {},
   );
@@ -107,7 +174,7 @@ export function AppSidebar({ role, ...props }: AppSidebarProps) {
       variant="inset"
       className="p-0 bg-[linear-gradient(180deg,hsl(215_72%_28%)_0%,hsl(221_68%_20%)_100%)] text-white"
       {...props}
-    > 
+    >
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -135,7 +202,7 @@ export function AppSidebar({ role, ...props }: AppSidebarProps) {
       </SidebarHeader>
       <SidebarContent className="px-2">
         <SidebarMenu>
-          {items.map((item) => {
+          {resolvedItems.map((item) => {
             const isParentActive = item.href
               ? isPathActive(pathname, item.href)
               : false;
@@ -183,6 +250,74 @@ export function AppSidebar({ role, ...props }: AppSidebarProps) {
                       <SidebarMenuSub>
                         {item.children?.map((child) => {
                           const isChildActive = child.href === activeChildHref;
+                          const isNestedMyClassChild =
+                            item.href !== MY_CLASS_PATH &&
+                            child.href === MY_CLASS_PATH &&
+                            classDetailChildren.length > 0;
+                          const nestedMyClassActiveHref = isNestedMyClassChild
+                            ? getActiveChildHref(pathname, myClassNestedChildren)
+                            : null;
+                          const nestedMyClassMenuKey = `${item.key}:${child.href}`;
+                          const isNestedMyClassOpen = isNestedMyClassChild
+                            ? (menuOverrides[nestedMyClassMenuKey] ??
+                              Boolean(nestedMyClassActiveHref))
+                            : false;
+
+                          if (isNestedMyClassChild) {
+                            return (
+                              <SidebarMenuSubItem key={child.href}>
+                                <Collapsible
+                                  open={isNestedMyClassOpen}
+                                  onOpenChange={(open) =>
+                                    setMenuOverrides((prev) => ({
+                                      ...prev,
+                                      [nestedMyClassMenuKey]: open,
+                                    }))
+                                  }
+                                  className="group/nested-collapsible"
+                                >
+                                  <CollapsibleTrigger asChild>
+                                    <SidebarMenuSubButton
+                                      isActive={Boolean(nestedMyClassActiveHref)}
+                                      className="cursor-pointer"
+                                    >
+                                      <span>{child.label}</span>
+                                      {isNestedMyClassOpen ? (
+                                        <ChevronDown className="ml-auto" />
+                                      ) : (
+                                        <ChevronRight className="ml-auto" />
+                                      )}
+                                    </SidebarMenuSubButton>
+                                  </CollapsibleTrigger>
+
+                                  <CollapsibleContent>
+                                    <SidebarMenuSub>
+                                      {myClassNestedChildren.map((classChild) => {
+                                        const isClassChildActive =
+                                          classChild.href === nestedMyClassActiveHref;
+
+                                        return (
+                                          <SidebarMenuSubItem key={classChild.href}>
+                                            <SidebarMenuSubButton
+                                              asChild
+                                              isActive={isClassChildActive}
+                                            >
+                                              <Link
+                                                href={classChild.href}
+                                                onClick={handleMobileNavClick}
+                                              >
+                                                <span>{classChild.label}</span>
+                                              </Link>
+                                            </SidebarMenuSubButton>
+                                          </SidebarMenuSubItem>
+                                        );
+                                      })}
+                                    </SidebarMenuSub>
+                                  </CollapsibleContent>
+                                </Collapsible>
+                              </SidebarMenuSubItem>
+                            );
+                          }
 
                           return (
                             <SidebarMenuSubItem key={child.href}>

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
 import {
   ArrowLeft,
   ArrowRight,
@@ -32,6 +33,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Select,
   SelectContent,
@@ -59,6 +61,7 @@ import {
 import { AssignmentAiAssistantDialog } from "./assignment-ai-assistant-dialog";
 import type { AiTransformJobType, AssignmentAiDraft } from "./assignment-ai-utils";
 import { AssignmentQuestionBuilderSection } from "./assignment-question-builder-section";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type ClassAssignmentsPageProps = {
   classId: string;
@@ -85,6 +88,7 @@ export function ClassAssignmentsPage({
   backHref,
   backLabel,
 }: ClassAssignmentsPageProps) {
+  const pathname = usePathname();
   const role = authTokenStorage.getUserRole();
   const canManage = role === "ADMIN" || role === "TEACHER";
   const [search, setSearch] = useState("");
@@ -94,6 +98,7 @@ export function ClassAssignmentsPage({
 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showAiAssistant, setShowAiAssistant] = useState(false);
+  const [showAiTooltip, setShowAiTooltip] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [assignmentType, setAssignmentType] = useState<AssignmentType>("TASK");
@@ -121,6 +126,7 @@ export function ClassAssignmentsPage({
     successMessage: "Image uploaded successfully.",
     errorMessage: "Failed to upload image.",
   });
+  const isMobile =useIsMobile()
 
   const handleEditorUpload = async (file: File): Promise<string> => {
     if (!file.type.startsWith("image/")) {
@@ -268,6 +274,25 @@ export function ClassAssignmentsPage({
     ) ||
     essayQuestions.some((question) => question.question.trim() || question.answerGuide.trim());
 
+  useEffect(() => {
+    if (!canManage) return;
+
+    const targetPath = `/dashboard/my-class/${classId}/assignments`;
+    if (pathname !== targetPath) return;
+
+    const openTimeoutId = window.setTimeout(() => {
+      setShowAiTooltip(true);
+    }, 0);
+    const closeTimeoutId = window.setTimeout(() => {
+      setShowAiTooltip(false);
+    }, 1000);
+
+    return () => {
+      window.clearTimeout(openTimeoutId);
+      window.clearTimeout(closeTimeoutId);
+    };
+  }, [canManage, classId, pathname]);
+
   const isMcqType = assignmentType === "QUIZ_MCQ";
   const isEssayType = assignmentType === "QUIZ_ESSAY";
   const hasAiGeneratedOutputs = (aiGeneratedOutputs?.length ?? 0) > 0;
@@ -412,14 +437,24 @@ export function ClassAssignmentsPage({
 
             {canManage ? (
               <div className="flex flex-wrap justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowAiAssistant(true)}
-                >
-                  <Sparkles className="h-4 w-4" />
-                  AI Assistant
-                </Button>
+                <Tooltip open={showAiTooltip} onOpenChange={setShowAiTooltip}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="gradient"
+                      onClick={() => {
+                        setShowAiTooltip(false);
+                        setShowAiAssistant(true);
+                      }}
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      AI Assistant
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side={isMobile ? "top" : "left"} sideOffset={8}>
+                    Try AI Features!
+                  </TooltipContent>
+                </Tooltip>
                 <Button
                   type="button"
                   variant={showCreateForm ? "outline" : "default"}

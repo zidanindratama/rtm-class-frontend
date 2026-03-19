@@ -4,7 +4,19 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, CheckCircle2, Loader2, OctagonAlert } from "lucide-react";
+import { isAxiosError } from "axios";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Download,
+  Eye,
+  File as FileIcon,
+  FileText,
+  Loader2,
+  OctagonAlert,
+  Upload,
+  X,
+} from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { DeleteDialog } from "@/components/globals/dialog/delete-dialog";
@@ -12,7 +24,6 @@ import { useGetData } from "@/hooks/use-get-data";
 import { useDeleteData } from "@/hooks/use-delete-data";
 import { usePatchData } from "@/hooks/use-patch-data";
 import { usePostData } from "@/hooks/use-post-data";
-import { UploadField } from "@/components/globals/upload/upload-field";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,6 +48,17 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  FileUpload,
+  FileUploadDropzone,
+  FileUploadItem,
+  FileUploadItemDelete,
+  FileUploadItemMetadata,
+  FileUploadItemPreview,
+  FileUploadItemProgress,
+  FileUploadList,
+  FileUploadTrigger,
+} from "@/components/ui/file-upload";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -49,7 +71,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { ClassDetailResponse } from "@/components/dashboard/classes/class-types";
 import { APISingleResponse } from "@/types/api-response";
-import { authTokenStorage } from "@/lib/axios-instance";
+import { authTokenStorage, axiosInstance } from "@/lib/axios-instance";
 import {
   MaterialAiJob,
   MaterialJobsResponse,
@@ -96,6 +118,107 @@ type TriggerAiPayload = {
     mcpEnabled?: boolean;
   };
 };
+
+const MATERIAL_UPLOAD_ACCEPT = ".pdf,.ppt,.pptx,.txt";
+const MATERIAL_UPLOAD_MAX_SIZE_BYTES = 20 * 1024 * 1024;
+
+const MATERIAL_UPLOAD_ALLOWED_MIME_TYPES = new Set([
+  "application/pdf",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "text/plain",
+]);
+
+type UploadApiResponse = {
+  message?: string;
+  data?: {
+    url?: string;
+    publicId?: string;
+  };
+  url?: string;
+  publicId?: string;
+};
+
+function getFileExtensionFromName(fileName: string) {
+  const normalizedName = fileName.trim().toLowerCase();
+  if (!normalizedName.includes(".")) return "";
+  const parts = normalizedName.split(".");
+  const extension = parts[parts.length - 1];
+  return extension ? `.${extension}` : "";
+}
+
+function getFileNameFromUrl(fileUrl: string) {
+  const normalizedUrl = fileUrl.trim();
+  if (!normalizedUrl) return "material-file";
+
+  try {
+    const pathname = new URL(normalizedUrl).pathname;
+    const fileName = pathname.split("/").pop() || "material-file";
+    return decodeURIComponent(fileName);
+  } catch {
+    const cleaned = normalizedUrl.split("?")[0]?.split("#")[0] ?? normalizedUrl;
+    const fileName = cleaned.split("/").pop() || "material-file";
+    return decodeURIComponent(fileName);
+  }
+}
+
+function getFileExtensionFromUrl(fileUrl: string) {
+  return getFileExtensionFromName(getFileNameFromUrl(fileUrl));
+}
+
+function getMaterialFileTypeLabel(fileUrl: string) {
+  const extension = getFileExtensionFromUrl(fileUrl);
+  if (!extension) return "File";
+  return extension.replace(".", "").toUpperCase();
+}
+
+function getMaterialFileIcon(fileUrl: string) {
+  const extension = getFileExtensionFromUrl(fileUrl);
+  if (extension === ".pdf" || extension === ".txt") return FileText;
+  return FileIcon;
+}
+
+function validateMaterialUploadFile(file: File) {
+  const extension = getFileExtensionFromName(file.name);
+  const hasAllowedExtension =
+    extension === ".pdf" ||
+    extension === ".ppt" ||
+    extension === ".pptx" ||
+    extension === ".txt";
+  const hasAllowedMimeType = MATERIAL_UPLOAD_ALLOWED_MIME_TYPES.has(
+    file.type.trim().toLowerCase(),
+  );
+
+  if (!hasAllowedExtension && !hasAllowedMimeType) {
+    return "Only PDF, PPT/PPTX, and TXT files are allowed.";
+  }
+
+  if (file.size > MATERIAL_UPLOAD_MAX_SIZE_BYTES) {
+    return "File size must be 20MB or less.";
+  }
+
+  return null;
+}
+
+function normalizeUploadRejectMessage(message: string) {
+  if (message === "File type not accepted") {
+    return "Only PDF, PPT/PPTX, and TXT files are allowed.";
+  }
+  if (message === "File too large") {
+    return "File size must be 20MB or less.";
+  }
+  return message;
+}
+
+function getUploadedFileUrl(responseData: UploadApiResponse) {
+  const dataUrl = responseData.data?.url?.trim();
+  if (dataUrl) return dataUrl;
+
+  const rootUrl = responseData.url?.trim();
+  if (rootUrl) return rootUrl;
+
+  return "";
+}
 
 function toOptionalTrimmed(value: string | undefined) {
   const nextValue = value?.trim();
@@ -359,6 +482,8 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
     "MCQ" | "ESSAY" | "SUMMARY" | "ALL" | null
   >(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [materialUploadFiles, setMaterialUploadFiles] = useState<File[]>([]);
+  const [isUploadingMaterialFile, setIsUploadingMaterialFile] = useState(false);
 
   const {
     data: classDetailResponse,
@@ -630,7 +755,82 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
       description: detail.description ?? "",
       fileUrl: detail.sourceUrl ?? detail.fileUrl ?? "",
     });
+    setMaterialUploadFiles([]);
   }, [form, isEditMode, materialDetailResponse]);
+
+  const handleMaterialFileUpload = async (
+    files: File[],
+    {
+      onProgress,
+      onSuccess,
+      onError,
+    }: {
+      onProgress: (file: File, progress: number) => void;
+      onSuccess: (file: File) => void;
+      onError: (file: File, error: Error) => void;
+    },
+  ) => {
+    setIsUploadingMaterialFile(true);
+
+    try {
+      for (const file of files) {
+        const validationError = validateMaterialUploadFile(file);
+        if (validationError) {
+          const uploadError = new Error(validationError);
+          form.setError("fileUrl", { type: "manual", message: validationError });
+          onError(file, uploadError);
+          continue;
+        }
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+          const response = await axiosInstance.post<UploadApiResponse>(
+            "/uploads",
+            formData,
+            {
+              headers: {
+                "Content-Type": "multipart/form-data",
+              },
+              onUploadProgress: (event) => {
+                if (!event.total) return;
+                const progress = Math.round((event.loaded * 100) / event.total);
+                onProgress(file, progress);
+              },
+            },
+          );
+
+          const uploadedFileUrl = getUploadedFileUrl(response.data);
+          if (!uploadedFileUrl) {
+            throw new Error("Upload succeeded but no file URL was returned.");
+          }
+
+          form.setValue("fileUrl", uploadedFileUrl, {
+            shouldDirty: true,
+            shouldTouch: true,
+            shouldValidate: true,
+          });
+          form.clearErrors("fileUrl");
+          onSuccess(file);
+        } catch (error) {
+          const fallbackMessage = "Failed to upload material file.";
+          const apiMessage = isAxiosError(error)
+            ? (error.response?.data as { message?: string } | undefined)
+                ?.message
+            : undefined;
+          const errorMessage =
+            apiMessage ||
+            (error instanceof Error ? error.message : fallbackMessage);
+
+          form.setError("fileUrl", { type: "manual", message: errorMessage });
+          onError(file, new Error(errorMessage));
+        }
+      }
+    } finally {
+      setIsUploadingMaterialFile(false);
+    }
+  };
 
   const handleCreate = (values: CreateMaterialValues) => {
     createMaterialMutation.mutate({
@@ -685,6 +885,38 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
         uploadedBy?: { id: string; fullName: string } | null;
       })
     | undefined;
+  const persistedMaterialFileUrl = (
+    materialData?.sourceUrl ??
+    materialData?.fileUrl ??
+    ""
+  ).trim();
+  const currentMaterialFileUrl = (form.watch("fileUrl") ?? "").trim();
+  const currentMaterialFileName = getFileNameFromUrl(currentMaterialFileUrl);
+  const currentMaterialFileTypeLabel =
+    getMaterialFileTypeLabel(currentMaterialFileUrl);
+  const CurrentMaterialFileIcon = getMaterialFileIcon(currentMaterialFileUrl);
+  const isMaterialFieldDisabled =
+    isSubmittingMaterial ||
+    isUploadingMaterialFile ||
+    (isEditMode && !canManageMaterial);
+
+  const handleMaterialUploadValueChange = (nextFiles: File[]) => {
+    setMaterialUploadFiles(nextFiles);
+
+    if (nextFiles.length > 0) {
+      return;
+    }
+
+    const fallbackFileUrl = isEditMode ? persistedMaterialFileUrl : "";
+    form.setValue("fileUrl", fallbackFileUrl, {
+      shouldTouch: true,
+      shouldValidate: true,
+    });
+
+    if (fallbackFileUrl) {
+      form.clearErrors("fileUrl");
+    }
+  };
 
   const teacherName =
     materialData?.teacher?.fullName?.trim() ||
@@ -971,10 +1203,7 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
                           placeholder="Enter material title"
                           {...field}
                           value={field.value ?? ""}
-                          disabled={
-                            isSubmittingMaterial ||
-                            (isEditMode && !canManageMaterial)
-                          }
+                          disabled={isMaterialFieldDisabled}
                         />
                       </FormControl>
                       <FormMessage />
@@ -994,10 +1223,7 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
                           className="min-h-[140px] resize-none"
                           {...field}
                           value={field.value ?? ""}
-                          disabled={
-                            isSubmittingMaterial ||
-                            (isEditMode && !canManageMaterial)
-                          }
+                          disabled={isMaterialFieldDisabled}
                         />
                       </FormControl>
                       <FormMessage />
@@ -1010,36 +1236,129 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
                   name="fileUrl"
                   render={({ field }) => (
                     <FormItem className="md:col-span-2">
-                      <FormLabel>File URL *</FormLabel>
+                      <FormLabel>Material File *</FormLabel>
                       <FormControl>
-                        <UploadField
-                          value={field.value ?? ""}
-                          onChange={field.onChange}
-                          label="Upload material file"
-                          accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.csv,.mp4,.mov,.mp3,.wav"
-                          showValueInput
-                          showUploadedUrl={false}
-                          showPreview
-                          placeholder="Paste a public file URL or upload file"
-                          uploadButtonLabel="Upload File"
-                          uploadingLabel="Uploading..."
-                          successMessage="Material file uploaded successfully."
-                          errorMessage="Failed to upload material file."
-                          disabled={
-                            isSubmittingMaterial ||
-                            (isEditMode && !canManageMaterial)
-                          }
-                          validateFile={(file) => {
-                            if (file.size > 20 * 1024 * 1024) {
-                              return "File size must be 20MB or less.";
-                            }
-                            return null;
-                          }}
-                        />
+                        <div className="space-y-3">
+                          <FileUpload
+                            value={materialUploadFiles}
+                            onValueChange={handleMaterialUploadValueChange}
+                            onUpload={handleMaterialFileUpload}
+                            onFileValidate={validateMaterialUploadFile}
+                            onFileReject={(_, message) => {
+                              form.setError("fileUrl", {
+                                type: "manual",
+                                message: normalizeUploadRejectMessage(message),
+                              });
+                            }}
+                            onFileAccept={() => form.clearErrors("fileUrl")}
+                            maxFiles={1}
+                            maxSize={MATERIAL_UPLOAD_MAX_SIZE_BYTES}
+                            accept={MATERIAL_UPLOAD_ACCEPT}
+                            disabled={isMaterialFieldDisabled}
+                            className="w-full"
+                          >
+                            <FileUploadDropzone className="p-5">
+                              <div className="flex flex-col items-center gap-1 text-center">
+                                <div className="flex items-center justify-center rounded-full border p-2.5">
+                                  <Upload className="size-5 text-muted-foreground" />
+                                </div>
+                                <p className="text-sm font-medium">
+                                  Drag and drop your material file
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  Only PDF, PPT/PPTX, or TXT files (max 20MB)
+                                </p>
+                              </div>
+                              <FileUploadTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className="mt-2"
+                                  disabled={isMaterialFieldDisabled}
+                                >
+                                  Browse file
+                                </Button>
+                              </FileUploadTrigger>
+                            </FileUploadDropzone>
+                            <FileUploadList>
+                              {materialUploadFiles.map((file, index) => (
+                                <FileUploadItem key={`${file.name}-${index}`} value={file}>
+                                  <div className="relative">
+                                    <FileUploadItemPreview />
+                                    <FileUploadItemProgress
+                                      variant="circular"
+                                      size={40}
+                                    />
+                                  </div>
+                                  <FileUploadItemMetadata />
+                                  <FileUploadItemDelete asChild>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="size-7"
+                                      disabled={isMaterialFieldDisabled}
+                                    >
+                                      <X className="size-4" />
+                                    </Button>
+                                  </FileUploadItemDelete>
+                                </FileUploadItem>
+                              ))}
+                            </FileUploadList>
+                          </FileUpload>
+
+                          {currentMaterialFileUrl ? (
+                            <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
+                              <div className="flex flex-wrap items-center gap-3">
+                                <div className="flex size-10 items-center justify-center rounded-md border bg-background">
+                                  <CurrentMaterialFileIcon className="h-5 w-5 text-muted-foreground" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="truncate text-sm font-medium">
+                                    {currentMaterialFileName}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {currentMaterialFileTypeLabel}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    asChild
+                                  >
+                                    <a
+                                      href={currentMaterialFileUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                    >
+                                      <Eye className="h-4 w-4" />
+                                      View
+                                    </a>
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    asChild
+                                  >
+                                    <a href={currentMaterialFileUrl} download>
+                                      <Download className="h-4 w-4" />
+                                    </a>
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          ) : null}
+
+                          <input type="hidden" {...field} value={field.value ?? ""} />
+                        </div>
                       </FormControl>
                       <FormDescription>
-                        Upload a file or paste direct URL that can be accessed
-                        by students.
+                        Upload one file. The saved file can be viewed or
+                        downloaded directly from this form.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -1071,18 +1390,21 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
                     type="submit"
                     disabled={
                       isSubmittingMaterial ||
+                      isUploadingMaterialFile ||
                       (isEditMode && (!materialId || !canManageMaterial))
                     }
                   >
-                    {isEditMode
-                      ? canManageMaterial
-                        ? updateMaterialMutation.isPending
-                          ? "Saving..."
-                          : "Save Changes"
-                        : "View Only"
-                      : createMaterialMutation.isPending
-                        ? "Creating..."
-                        : "Create Material"}
+                    {isUploadingMaterialFile
+                      ? "Uploading file..."
+                      : isEditMode
+                        ? canManageMaterial
+                          ? updateMaterialMutation.isPending
+                            ? "Saving..."
+                            : "Save Changes"
+                          : "View Only"
+                        : createMaterialMutation.isPending
+                          ? "Creating..."
+                          : "Create Material"}
                   </Button>
                 </div>
               </form>
@@ -1100,7 +1422,7 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
               <>
                 {canManageMaterial ? (
                   <>
-                    <p>- You can update title, description, and file URL.</p>
+                    <p>- You can update title, description, and uploaded file.</p>
                     <p>- Save changes to sync with backend material data.</p>
                     <p>
                       - Delete is permanent and removes related AI jobs/outputs.
@@ -1118,8 +1440,8 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
               </>
             ) : (
               <>
-                <p>- Title and file URL are required fields.</p>
-                <p>- Use a direct, publicly accessible file URL.</p>
+                <p>- Title and material file are required fields.</p>
+                <p>- Allowed formats are PDF, PPT/PPTX, and TXT.</p>
                 <p>
                   - MIME type is inferred automatically from file extension.
                 </p>

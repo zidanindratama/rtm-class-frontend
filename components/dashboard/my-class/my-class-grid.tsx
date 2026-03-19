@@ -73,7 +73,8 @@ export function MyClassGrid() {
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<SortByOption>("all");
   const [sortOrder, setSortOrder] = useState<SortOrderOption>("all");
-  const [classPendingDelete, setClassPendingDelete] = useState<ClassDetailResponse | null>(null);
+  const [classPendingDelete, setClassPendingDelete] =
+    useState<ClassDetailResponse | null>(null);
   const currentRole = authTokenStorage.getUserRole();
   const canManageClass = currentRole === "TEACHER" || currentRole === "ADMIN";
 
@@ -184,17 +185,19 @@ export function MyClassGrid() {
   return (
     <section>
       <div className="mx-auto">
-        <div className="flex my-3">
-          <Button className="ml-auto" asChild>
-            <Link
-              href="/dashboard/classes/create"
-              className="inline-flex items-center gap-2"
-            >
-              <PlusIcon className="h-4 w-4" />
-              Add New Class
-            </Link>
-          </Button>
-        </div>
+        {canManageClass && (
+          <div className="flex my-3">
+            <Button className="ml-auto" asChild>
+              <Link
+                href="/dashboard/classes/create"
+                className="inline-flex items-center gap-2"
+              >
+                <PlusIcon className="h-4 w-4" />
+                Add New Class
+              </Link>
+            </Button>
+          </div>
+        )}
 
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -371,7 +374,11 @@ export function MyClassGrid() {
 
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button type="button" variant="ghost" className="h-8 w-8 p-0">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            className="h-8 w-8 p-0"
+                          >
                             <EllipsisIcon className="h-4 w-4" />
                             <span className="sr-only">Open actions</span>
                           </Button>
@@ -380,16 +387,26 @@ export function MyClassGrid() {
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem asChild>
-                            <Link href={`/dashboard/my-class/${cls.id}/forums`}>Open Forum</Link>
+                            <Link href={`/dashboard/my-class/${cls.id}/forums`}>
+                              Open Forum
+                            </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>
-                            <Link href={`/dashboard/my-class/${cls.id}/assignments`}>Assignments</Link>
+                            <Link
+                              href={`/dashboard/my-class/${cls.id}/assignments`}
+                            >
+                              Assignments
+                            </Link>
                           </DropdownMenuItem>
                           {canManageClass ? (
                             <>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem asChild>
-                                <Link href={`/dashboard/classes/${cls.id}/edit`}>Edit Class</Link>
+                                <Link
+                                  href={`/dashboard/classes/${cls.id}/edit`}
+                                >
+                                  Edit Class
+                                </Link>
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 variant="destructive"

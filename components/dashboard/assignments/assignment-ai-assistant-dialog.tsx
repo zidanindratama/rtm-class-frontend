@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -25,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/spinner";
 import {
   type AiTransformJob,
@@ -59,12 +59,19 @@ const JOB_POLL_INTERVAL_MS = 3000;
 const JOB_POLL_MAX_ATTEMPTS = 40;
 const OUTPUT_FETCH_RETRIES = 5;
 const OUTPUT_FETCH_INTERVAL_MS = 2000;
-const OUTPUT_OPTIONS: AiTransformJobType[] = ["MCQ", "ESSAY", "SUMMARY"];
+const SUMMARY_MAX_WORDS_DEFAULT = 200;
 
 const sleep = (delayMs: number) =>
   new Promise<void>((resolve) => {
     window.setTimeout(resolve, delayMs);
   });
+
+const logAssignmentAiAssistant = (label: string, payload?: unknown) => {
+  if (payload === undefined) { 
+    return;
+  }
+ 
+};
 
 const getErrorMessage = (error: unknown) => {
   if (error instanceof Error && error.message.trim()) {
@@ -147,10 +154,9 @@ export function AssignmentAiAssistantDialog({
   onApplyDraft,
 }: AssignmentAiAssistantDialogProps) {
   const [assignmentTitle, setAssignmentTitle] = useState("");
-  const [selectedOutputs, setSelectedOutputs] = useState<AiTransformJobType[]>(["MCQ"]);
+  const [selectedOutput, setSelectedOutput] = useState<"MCQ" | "ESSAY">("MCQ");
   const [mcqCount, setMcqCount] = useState("10");
   const [essayCount, setEssayCount] = useState("5");
-  const [summaryMaxWords, setSummaryMaxWords] = useState("200");
   const [selectedMaterialId, setSelectedMaterialId] = useState("");
   const [processingStage, setProcessingStage] = useState("");
 
@@ -187,13 +193,9 @@ export function AssignmentAiAssistantDialog({
         throw new Error("Assignment title must be at least 3 characters.");
       }
 
-      if (selectedOutputs.length === 0) {
-        throw new Error("Select at least one output type.");
-      }
-
-      const mcqSelected = selectedOutputs.includes("MCQ");
-      const essaySelected = selectedOutputs.includes("ESSAY");
-      const summarySelected = selectedOutputs.includes("SUMMARY");
+      const selectedOutputs: AiTransformJobType[] = [selectedOutput, "SUMMARY"];
+      const mcqSelected = selectedOutput === "MCQ";
+      const essaySelected = selectedOutput === "ESSAY";
 
       const parsedMcqCount = Number(mcqCount);
       if (
@@ -211,102 +213,116 @@ export function AssignmentAiAssistantDialog({
         throw new Error("Essay count must be between 1 and 100.");
       }
 
-      const parsedSummaryMaxWords = Number(summaryMaxWords);
-      if (
-        summarySelected
-        && (!Number.isInteger(parsedSummaryMaxWords) || parsedSummaryMaxWords < 50 || parsedSummaryMaxWords > 2000)
-      ) {
-        throw new Error("Summary max words must be between 50 and 2000.");
-      }
-
-      setProcessingStage("Queueing AI job...");
-      const transformResponse = await axiosInstance.post<APISingleResponse<AiTransformResponse>>(
-        "/ai/jobs/transform",
-        {
-          materialId: selectedMaterial.id,
-          outputs: selectedOutputs,
-          options: {
-            mcqCount: Number.isInteger(parsedMcqCount) ? parsedMcqCount : 10,
-            essayCount: Number.isInteger(parsedEssayCount) ? parsedEssayCount : 5,
-            summaryMaxWords: Number.isInteger(parsedSummaryMaxWords) ? parsedSummaryMaxWords : 200,
-            mcpEnabled: true,
-          },
-        },
-      );
-
-      const queuedJobs = transformResponse.data.data.jobs ?? [];
-      const generatedOutputs: MaterialAiOutput[] = [];
-
-      for (const selectedOutput of selectedOutputs) {
-        const createdJob = queuedJobs.find((job) => job.type === selectedOutput);
-        if (!createdJob) {
-          throw new Error(`AI job for ${selectedOutput} was queued but no matching job was returned.`);
-        }
-
-        setProcessingStage(`Generating ${selectedOutput} output...`);
-        const job = await pollUntilJobTerminal(createdJob.id);
-        if (job.status !== "succeeded") {
-          throw new Error(job.lastError?.trim() || `AI ${selectedOutput} job failed.`);
-        }
-
-        const output = await fetchMaterialOutput(selectedMaterial.id, createdJob.id, selectedOutput);
-        generatedOutputs.push(output);
-      }
-
-      let generatedType: AssignmentAiDraft["type"] = "TASK";
-      if (selectedOutputs.includes("MCQ")) {
-        generatedType = "QUIZ_MCQ";
-      } else if (selectedOutputs.includes("ESSAY")) {
-        generatedType = "QUIZ_ESSAY";
-      }
-
-      let generatedHtml = "";
-      let generatedSummary = "";
-      let generatedMcqQuestions: AssignmentAiDraft["mcqQuestions"] = [];
-      let generatedEssayQuestions: AssignmentAiDraft["essayQuestions"] = [];
-
-      for (const output of generatedOutputs) {
-        if (output.type === "MCQ" || output.type === "ESSAY") {
-          const mappedDraft = mapAiOutputToAssignmentDraft({
-            output,
-            assignmentTitle: trimmedTitle,
-            materialId: selectedMaterial.id,
-            sourceMaterialTitle: selectedMaterial.title,
-            sourceMaterialUrl: getMaterialFileUrl(selectedMaterial),
-          });
-
-          if (output.type === "MCQ") {
-            generatedMcqQuestions = mappedDraft.mcqQuestions;
-          }
-
-          if (output.type === "ESSAY") {
-            generatedEssayQuestions = mappedDraft.essayQuestions;
-          }
-
-          if (!generatedHtml.trim() && mappedDraft.contentHtml.trim()) {
-            generatedHtml = mappedDraft.contentHtml;
-          }
-
-          continue;
-        }
-
-        if (output.type === "SUMMARY") {
-          generatedSummary = extractSummaryTextFromOutput(output);
-        }
-      }
-
-      return {
-        title: trimmedTitle,
-        type: generatedType,
+      const transformPayload = {
         materialId: selectedMaterial.id,
-        sourceMaterialTitle: selectedMaterial.title,
-        sourceMaterialUrl: getMaterialFileUrl(selectedMaterial),
-        contentHtml: generatedHtml,
-        mcqQuestions: generatedMcqQuestions,
-        essayQuestions: generatedEssayQuestions,
-        summaryText: generatedSummary,
-        outputs: [...selectedOutputs],
+        outputs: selectedOutputs,
+        options: {
+          mcqCount: Number.isInteger(parsedMcqCount) ? parsedMcqCount : 10,
+          essayCount: Number.isInteger(parsedEssayCount) ? parsedEssayCount : 5,
+          summaryMaxWords: SUMMARY_MAX_WORDS_DEFAULT,
+          mcpEnabled: true,
+        },
       };
+
+      logAssignmentAiAssistant("Starting AI transform request", {
+        classId,
+        selectedMaterialId,
+        selectedOutput,
+        selectedOutputs,
+        assignmentTitle: trimmedTitle,
+        transformPayload,
+      });
+
+      try {
+        setProcessingStage("Queueing AI job...");
+        const transformResponse = await axiosInstance.post<APISingleResponse<AiTransformResponse>>(
+          "/ai/jobs/transform",
+          transformPayload,
+        );
+
+        logAssignmentAiAssistant("AI transform response", {
+          status: transformResponse.status,
+          data: transformResponse.data,
+        });
+
+        const queuedJobs = transformResponse.data.data.jobs ?? [];
+        const generatedOutputs: MaterialAiOutput[] = [];
+
+        for (const outputType of selectedOutputs) {
+          const createdJob = queuedJobs.find((job) => job.type === outputType);
+          if (!createdJob) {
+            throw new Error(`AI job for ${outputType} was queued but no matching job was returned.`);
+          }
+
+          setProcessingStage(`Generating ${outputType} output...`);
+          const job = await pollUntilJobTerminal(createdJob.id);
+          if (job.status !== "succeeded") {
+            throw new Error(job.lastError?.trim() || `AI ${outputType} job failed.`);
+          }
+
+          const output = await fetchMaterialOutput(selectedMaterial.id, createdJob.id, outputType);
+          generatedOutputs.push(output);
+        }
+
+        let generatedType: AssignmentAiDraft["type"] = "TASK";
+        if (selectedOutput === "MCQ") {
+          generatedType = "QUIZ_MCQ";
+        } else if (selectedOutput === "ESSAY") {
+          generatedType = "QUIZ_ESSAY";
+        }
+
+        let generatedHtml = "";
+        let generatedSummary = "";
+        let generatedMcqQuestions: AssignmentAiDraft["mcqQuestions"] = [];
+        let generatedEssayQuestions: AssignmentAiDraft["essayQuestions"] = [];
+
+        for (const output of generatedOutputs) {
+          if (output.type === "MCQ" || output.type === "ESSAY") {
+            const mappedDraft = mapAiOutputToAssignmentDraft({
+              output,
+              assignmentTitle: trimmedTitle,
+              materialId: selectedMaterial.id,
+              sourceMaterialTitle: selectedMaterial.title,
+              sourceMaterialUrl: getMaterialFileUrl(selectedMaterial),
+            });
+
+            if (output.type === "MCQ") {
+              generatedMcqQuestions = mappedDraft.mcqQuestions;
+            }
+
+            if (output.type === "ESSAY") {
+              generatedEssayQuestions = mappedDraft.essayQuestions;
+            }
+
+            if (!generatedHtml.trim() && mappedDraft.contentHtml.trim()) {
+              generatedHtml = mappedDraft.contentHtml;
+            }
+
+            continue;
+          }
+
+          if (output.type === "SUMMARY") {
+            generatedSummary = extractSummaryTextFromOutput(output);
+          }
+        }
+
+        return {
+          title: trimmedTitle,
+          type: generatedType,
+          materialId: selectedMaterial.id,
+          sourceMaterialTitle: selectedMaterial.title,
+          sourceMaterialUrl: getMaterialFileUrl(selectedMaterial),
+          contentHtml: generatedHtml,
+          mcqQuestions: generatedMcqQuestions,
+          essayQuestions: generatedEssayQuestions,
+          summaryText: generatedSummary,
+          outputs: [...selectedOutputs],
+        };
+      } catch (error) {
+        throw error instanceof Error
+          ? error
+          : new Error("Failed to generate AI assignment draft.");
+      }
     },
     onSuccess: (draft) => {
       const applied = onApplyDraft(draft);
@@ -325,10 +341,9 @@ export function AssignmentAiAssistantDialog({
 
   const resetDialogState = () => {
     setAssignmentTitle("");
-    setSelectedOutputs(["MCQ"]);
+    setSelectedOutput("MCQ");
     setMcqCount("10");
     setEssayCount("5");
-    setSummaryMaxWords("200");
     setSelectedMaterialId("");
     setProcessingStage("");
     assistantMutation.reset();
@@ -399,240 +414,224 @@ export function AssignmentAiAssistantDialog({
   };
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(nextOpen) => {
-        if (pending) {
-          return;
-        }
+    <>
+      <Dialog
+        open={open}
+        onOpenChange={(nextOpen) => {
+          if (pending) {
+            return;
+          }
 
-        if (!nextOpen) {
-          closeDialog();
-          return;
-        }
+          if (!nextOpen) {
+            closeDialog();
+            return;
+          }
 
-        onOpenChange(true);
-      }}
-    >
-      <DialogContent className="max-w-2xl" showCloseButton={!pending}>
-        <DialogHeader>
-          <DialogTitle className="inline-flex items-center gap-2">
-            <Sparkles className="h-5 w-5" />
-            AI Assignment Assistant
-          </DialogTitle>
-          <DialogDescription>
-            Select an existing class material, then let AI prepare a quiz draft from the stored source file.
-          </DialogDescription>
-        </DialogHeader>
+          onOpenChange(true);
+        }}
+      >
+        <DialogContent
+          className="max-h-[90dvh] max-w-2xl overflow-hidden sm:max-h-[85vh]"
+          showCloseButton={!pending}
+        >
+          <DialogHeader>
+            <DialogTitle className="inline-flex items-center gap-2">
+              <Sparkles className="h-5 w-5" />
+              AI Assignment Assistant
+            </DialogTitle>
+            <DialogDescription>
+              Select an existing class material, then let AI prepare a quiz draft from the stored source file.
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="grid gap-5">
-          <div className="space-y-2">
-            <Label htmlFor="ai-source-material">Source Material</Label>
-            <Select
-              value={selectedMaterialId}
-              onValueChange={(value) => {
-                setSelectedMaterialId(value);
+          <ScrollArea className="max-h-[calc(90dvh-14rem)] pr-3 sm:max-h-[calc(85vh-14rem)]">
+          <div className="grid gap-5">
+            <div className="space-y-2">
+              <Label htmlFor="ai-source-material">Source Material</Label>
+              <Select
+                value={selectedMaterialId}
+                onValueChange={(value) => {
+                  setSelectedMaterialId(value);
 
-                const material = materials.find((item) => item.id === value);
-                if (material) {
-                  setAssignmentTitle(material.title);
-                }
-              }}
-              disabled={pending || materialsQuery.isLoading || materials.length === 0}
-            >
-              <SelectTrigger id="ai-source-material">
-                <SelectValue placeholder="Choose class material" />
-              </SelectTrigger>
-              <SelectContent>
-                {materials.map((material) => (
-                  <SelectItem key={material.id} value={material.id}>
-                    {material.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              Materials are loaded from this class. AI works best with PDF, TXT, or PPTX sources.
-            </p>
-          </div>
-
-          {materialsQuery.isLoading ? (
-            <div className="rounded-lg border border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
-              Loading class materials...
-            </div>
-          ) : null}
-
-          {materialsQuery.isError ? (
-            <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">
-              Failed to load class materials.
-            </div>
-          ) : null}
-
-          {!materialsQuery.isLoading && !materialsQuery.isError && materials.length === 0 ? (
-            <div className="rounded-lg border border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
-              No class material found yet. Add a material in this class first.
-            </div>
-          ) : null}
-
-          {selectedMaterial ? (
-            <div className="rounded-lg border border-border/70 bg-muted/20 p-3 text-sm">
-              <div className="inline-flex items-center gap-2 font-medium">
-                <FileText className="h-4 w-4" />
-                {selectedMaterial.title}
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {describeMaterialSource(selectedMaterial)}
+                  const material = materials.find((item) => item.id === value);
+                  if (material) {
+                    setAssignmentTitle(material.title);
+                  }
+                }}
+                disabled={pending || materialsQuery.isLoading || materials.length === 0}
+              >
+                <SelectTrigger id="ai-source-material">
+                  <SelectValue placeholder="Choose class material" />
+                </SelectTrigger>
+                <SelectContent>
+                  {materials.map((material) => (
+                    <SelectItem key={material.id} value={material.id}>
+                      {material.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Materials are loaded from this class. AI works best with PDF, TXT, or PPTX sources.
               </p>
-              {selectedMaterial.description ? (
-                <p className="mt-2 text-xs text-muted-foreground">{selectedMaterial.description}</p>
-              ) : null}
-              {!isLikelyAiSupportedMaterial(selectedMaterial) ? (
-                <p className="mt-2 text-xs text-amber-600">
-                  This material does not expose a clear PDF, TXT, or PPTX hint. Backend processing may fail if the
-                  stored source file is unsupported.
-                </p>
-              ) : null}
-            </div>
-          ) : null}
-
-          <div className="space-y-2">
-            <Label>Outputs</Label>
-            <div className="grid gap-2 rounded-lg border border-border/70 bg-muted/20 p-3 sm:grid-cols-3">
-              {OUTPUT_OPTIONS.map((output) => (
-                <label
-                  key={output}
-                  className="inline-flex items-center gap-2 rounded-md border border-border/60 bg-background/70 px-3 py-2 text-sm"
-                >
-                  <Checkbox
-                    checked={selectedOutputs.includes(output)}
-                    onCheckedChange={(checked) => {
-                      const shouldEnable = checked === true;
-                      setSelectedOutputs((current) => {
-                        if (shouldEnable) {
-                          return current.includes(output) ? current : [...current, output];
-                        }
-
-                        return current.filter((item) => item !== output);
-                      });
-                    }}
-                    disabled={pending}
-                  />
-                  {output}
-                </label>
-              ))}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Select one or more outputs. Generated MCQ, Essay, and Summary sections will be applied to the form.
-            </p>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="space-y-2">
-              <Label htmlFor="ai-mcq-count">MCQ Count</Label>
-              <Input
-                id="ai-mcq-count"
-                type="number"
-                min={1}
-                max={100}
-                value={mcqCount}
-                onChange={(event) => setMcqCount(event.target.value)}
-                disabled={pending || !selectedOutputs.includes("MCQ")}
-              />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="ai-essay-count">Essay Count</Label>
-              <Input
-                id="ai-essay-count"
-                type="number"
-                min={1}
-                max={100}
-                value={essayCount}
-                onChange={(event) => setEssayCount(event.target.value)}
-                disabled={pending || !selectedOutputs.includes("ESSAY")}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="ai-summary-max-words">Summary Max Words</Label>
-              <Input
-                id="ai-summary-max-words"
-                type="number"
-                min={50}
-                max={2000}
-                value={summaryMaxWords}
-                onChange={(event) => setSummaryMaxWords(event.target.value)}
-                disabled={pending || !selectedOutputs.includes("SUMMARY")}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="ai-assignment-title">Assignment Title</Label>
-            <Input
-              id="ai-assignment-title"
-              value={assignmentTitle}
-              onChange={(event) => setAssignmentTitle(event.target.value)}
-              placeholder="Example: Quiz Bab 1 Aljabar"
-              disabled={pending}
-            />
-          </div>
-
-          {pending ? (
-            <div className="space-y-3 rounded-lg border border-border/70 bg-muted/20 p-4">
-              <div className="inline-flex items-center gap-2 text-sm font-medium">
-                <Spinner />
-                {processingStage || "Preparing AI draft..."}
+            {materialsQuery.isLoading ? (
+              <div className="rounded-lg border border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
+                Loading class materials...
               </div>
-              {selectedMaterial ? (
-                <p className="text-xs text-muted-foreground">
-                  Source material: <span className="font-medium text-foreground">{selectedMaterial.title}</span>
+            ) : null}
+
+            {materialsQuery.isError ? (
+              <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">
+                Failed to load class materials.
+              </div>
+            ) : null}
+
+            {!materialsQuery.isLoading && !materialsQuery.isError && materials.length === 0 ? (
+              <div className="rounded-lg border border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
+                No class material found yet. Add a material in this class first.
+              </div>
+            ) : null}
+
+            {selectedMaterial ? (
+              <div className="rounded-lg border border-border/70 bg-muted/20 p-3 text-sm">
+                <div className="inline-flex items-center gap-2 font-medium">
+                  <FileText className="h-4 w-4" />
+                  {selectedMaterial.title}
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {describeMaterialSource(selectedMaterial)}
                 </p>
-              ) : null}
-            </div>
-          ) : null}
+                {selectedMaterial.description ? (
+                  <p className="mt-2 text-xs text-muted-foreground">{selectedMaterial.description}</p>
+                ) : null}
+                {!isLikelyAiSupportedMaterial(selectedMaterial) ? (
+                  <p className="mt-2 text-xs text-amber-600">
+                    This material does not expose a clear PDF, TXT, or PPTX hint. Backend processing may fail if the
+                    stored source file is unsupported.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
 
-          {assistantMutation.error ? (
-            <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
-              {getErrorMessage(assistantMutation.error)}
+            <div className="space-y-2">
+              <Label htmlFor="ai-output-type">Output Type</Label>
+              <Select
+                value={selectedOutput}
+                onValueChange={(value) => setSelectedOutput(value as "MCQ" | "ESSAY")}
+                disabled={pending}
+              >
+                <SelectTrigger id="ai-output-type">
+                  <SelectValue placeholder="Choose output type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="MCQ">MCQ (Multiple Choice Question)</SelectItem>
+                  <SelectItem value="ESSAY">Essay</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Summary output is generated automatically in the background.
+              </p>
             </div>
-          ) : null}
-        </div>
 
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={closeDialog}
-            disabled={pending}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            onClick={() => assistantMutation.mutate()}
-            disabled={
-              pending
-              || materialsQuery.isLoading
-              || materialsQuery.isError
-              || !selectedMaterialId
-              || selectedOutputs.length === 0
-            }
-          >
-            {pending ? (
-              <>
-                <Spinner className="h-4 w-4" />
-                Processing...
-              </>
-            ) : (
-              <>
-                <Wand2 className="h-4 w-4" />
-                Generate Draft
-              </>
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="ai-mcq-count">MCQ Count</Label>
+                <Input
+                  id="ai-mcq-count"
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={mcqCount}
+                  onChange={(event) => setMcqCount(event.target.value)}
+                  disabled={pending || selectedOutput !== "MCQ"}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ai-essay-count">Essay Count</Label>
+                <Input
+                  id="ai-essay-count"
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={essayCount}
+                  onChange={(event) => setEssayCount(event.target.value)}
+                  disabled={pending || selectedOutput !== "ESSAY"}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="ai-assignment-title">Assignment Title</Label>
+              <Input
+                id="ai-assignment-title"
+                value={assignmentTitle}
+                onChange={(event) => setAssignmentTitle(event.target.value)}
+                placeholder="Example: Quiz Bab 1 Aljabar"
+                disabled={pending}
+              />
+            </div>
+
+            {assistantMutation.error ? (
+              <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
+                {getErrorMessage(assistantMutation.error)}
+              </div>
+            ) : null}
+          </div>
+          <ScrollBar orientation="vertical"/>
+          </ScrollArea>
+
+          <DialogFooter className="pt-4">
+            <Button
+              type="button"
+              onClick={() => assistantMutation.mutate()}
+              disabled={
+                pending
+                || materialsQuery.isLoading
+                || materialsQuery.isError
+                || !selectedMaterialId
+              }
+            >
+              {pending ? (
+                <>
+                  <Spinner className="h-4 w-4" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <Wand2 className="h-4 w-4" />
+                  Generate Draft
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={pending}
+        onOpenChange={() => {}}
+      >
+        <DialogContent
+          className="z-[60] max-w-md"
+          showCloseButton={false}
+          onEscapeKeyDown={(event) => event.preventDefault()}
+          onPointerDownOutside={(event) => event.preventDefault()}
+          onInteractOutside={(event) => event.preventDefault()}
+        >
+          <DialogHeader className="flex items-center flex-col">
+            <DialogTitle className="inline-flex items-center gap-2">
+              <Spinner className="h-5 w-5" />
+              Processing AI Draft
+            </DialogTitle>
+            <DialogDescription>
+              {processingStage || "Preparing AI draft..."}
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

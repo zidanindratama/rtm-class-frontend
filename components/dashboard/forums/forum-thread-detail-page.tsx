@@ -31,6 +31,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ForumThreadDetail, ForumThreadDetailComment } from "./forum-types";
+import { formatDateTimeLabel } from "@/lib/utils";
 
 type ForumThreadDetailPageProps = {
   classId: string;
@@ -44,15 +45,6 @@ type AuthMeResponseData = {
     id: string;
   };
 };
-
-function formatDateTimeLabel(iso: string) {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "Invalid date";
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
-}
 
 export function ForumThreadDetailPage({
   classId,

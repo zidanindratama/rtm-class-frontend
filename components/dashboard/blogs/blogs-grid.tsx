@@ -50,6 +50,7 @@ import {
   SORT_BY_LABELS,
   SORT_ORDER_LABELS,
 } from "./blog-constants";
+import { formatDateLabel } from "@/lib/utils";
 
 const DEFAULT_PAGE_SIZE = 6;
 const PAGE_SIZE_OPTIONS = [6, 12, 24];
@@ -59,15 +60,6 @@ function getPrimaryBlogDate(
   isoCreatedAt: string,
 ) {
   return isoPublishedAt ?? isoCreatedAt;
-}
-
-function formatDateLabel(iso: string | null) {
-  if (!iso) return "Not published";
-
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "Invalid date";
-
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(date);
 }
 
 const statusOptions: PublishedFilterOption[] = ["all", "true", "false"];

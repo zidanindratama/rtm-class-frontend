@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { DeleteDialog } from "@/components/globals/dialog/delete-dialog";
 import { authTokenStorage } from "@/lib/axios-instance";
+import { formatDateLabel } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -55,15 +56,6 @@ const PAGE_SIZE_OPTIONS = [10, 20, 50];
 const sortByOptions: SortByOption[] = ["all", "createdAt", "name", "classCode"];
 const sortOrderOptions: SortOrderOption[] = ["all", "asc", "desc"];
 
-function formatDateLabel(iso: string | null) {
-  if (!iso) return "Unknown date";
-
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "Invalid date";
-
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(date);
-}
-
 export function MyClassGrid() {
   const smoothEase = [0.16, 1, 0.3, 1] as const;
   const router = useRouter();
@@ -73,7 +65,8 @@ export function MyClassGrid() {
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<SortByOption>("all");
   const [sortOrder, setSortOrder] = useState<SortOrderOption>("all");
-  const [classPendingDelete, setClassPendingDelete] = useState<ClassDetailResponse | null>(null);
+  const [classPendingDelete, setClassPendingDelete] =
+    useState<ClassDetailResponse | null>(null);
   const currentRole = authTokenStorage.getUserRole();
   const canManageClass = currentRole === "TEACHER" || currentRole === "ADMIN";
 
@@ -184,17 +177,19 @@ export function MyClassGrid() {
   return (
     <section>
       <div className="mx-auto">
-        <div className="flex my-3">
-          <Button className="ml-auto" asChild>
-            <Link
-              href="/dashboard/classes/create"
-              className="inline-flex items-center gap-2"
-            >
-              <PlusIcon className="h-4 w-4" />
-              Add New Class
-            </Link>
-          </Button>
-        </div>
+        {canManageClass && (
+          <div className="flex my-3">
+            <Button className="ml-auto" asChild>
+              <Link
+                href="/dashboard/classes/create"
+                className="inline-flex items-center gap-2"
+              >
+                <PlusIcon className="h-4 w-4" />
+                Add New Class
+              </Link>
+            </Button>
+          </div>
+        )}
 
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -356,7 +351,7 @@ export function MyClassGrid() {
                       </span>
                       <span className="inline-flex items-center gap-1.5">
                         <CalendarDays className="h-3.5 w-3.5" />
-                        {formatDateLabel(cls.createdAt)}
+                        {formatDateLabel(cls.createdAt, { emptyLabel: "Unknown date" })}
                       </span>
                     </div>
 
@@ -371,7 +366,11 @@ export function MyClassGrid() {
 
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button type="button" variant="ghost" className="h-8 w-8 p-0">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            className="h-8 w-8 p-0"
+                          >
                             <EllipsisIcon className="h-4 w-4" />
                             <span className="sr-only">Open actions</span>
                           </Button>
@@ -380,16 +379,26 @@ export function MyClassGrid() {
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem asChild>
-                            <Link href={`/dashboard/my-class/${cls.id}/forums`}>Open Forum</Link>
+                            <Link href={`/dashboard/my-class/${cls.id}/forums`}>
+                              Open Forum
+                            </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>
-                            <Link href={`/dashboard/my-class/${cls.id}/assignments`}>Assignments</Link>
+                            <Link
+                              href={`/dashboard/my-class/${cls.id}/assignments`}
+                            >
+                              Assignments
+                            </Link>
                           </DropdownMenuItem>
                           {canManageClass ? (
                             <>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem asChild>
-                                <Link href={`/dashboard/classes/${cls.id}/edit`}>Edit Class</Link>
+                                <Link
+                                  href={`/dashboard/classes/${cls.id}/edit`}
+                                >
+                                  Edit Class
+                                </Link>
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 variant="destructive"

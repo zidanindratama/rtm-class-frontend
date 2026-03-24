@@ -11,6 +11,7 @@ export type MaterialType =
   | (string & {});
 
 export type MaterialAiStatusKey = "PENDING" | "PROCESSING" | "DONE" | "FAILED";
+export type MaterialStatus = "UPLOADED" | "PROCESSING" | "READY" | "ARCHIVED" | (string & {});
 
 export type MaterialAiStatus = {
   mcq?: MaterialAiStatusKey | null;
@@ -20,12 +21,35 @@ export type MaterialAiStatus = {
 
 export type MaterialListItem = {
   id: string;
-  classId: string;
+  classroomId: string;
+  uploadedById: string;
   title: string;
   description: string | null;
-  type: MaterialType;
-  sourceUrl: string | null;
+  fileUrl: string | null;
+  fileMimeType: string | null;
+  status: MaterialStatus;
   createdAt: string;
+  updatedAt: string;
+  classroom?: {
+    id: string;
+    name: string;
+    classCode: string;
+  } | null;
+  uploadedBy?: {
+    id: string;
+    fullName: string;
+    email?: string;
+    role?: string;
+  } | null;
+  _count?: {
+    aiJobs: number;
+    aiOutputs: number;
+  } | null;
+
+  // Legacy fallback fields for older endpoints/components
+  classId?: string;
+  type?: MaterialType;
+  sourceUrl?: string | null;
   teacher?: {
     id: string;
     fullName: string;

@@ -40,20 +40,12 @@ import { useGetData } from "@/hooks/use-get-data";
 import { useDeleteData } from "@/hooks/use-delete-data";
 import { DeleteDialog } from "@/components/globals/dialog/delete-dialog";
 import { APIListResponse } from "@/types/api-response";
-
-// Import from the types/constants we defined above
+import { formatDateLabel } from "@/lib/utils";
 import { ClassDetailResponse, SortByOption, SortOrderOption } from "./class-types";
 import { SORT_BY_LABELS, SORT_ORDER_LABELS } from "./class-constants";
 
 const DEFAULT_PAGE_SIZE = 10;
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
-
-function formatDateLabel(iso: string | null) {
-  if (!iso) return "Unknown date";
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "Invalid date";
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(date);
-}
 
 const sortByOptions: SortByOption[] = ["all", "createdAt", "name", "classCode"];
 const sortOrderOptions: SortOrderOption[] = ["all", "asc", "desc"];
@@ -340,7 +332,7 @@ export function AdminClassesGrid() {
                       </span>
                       <span className="inline-flex items-center gap-1.5">
                         <CalendarDays className="h-3.5 w-3.5" />
-                        {formatDateLabel(cls.createdAt)}
+                        {formatDateLabel(cls.createdAt, { emptyLabel: "Unknown date" })}
                       </span>
                     </div>
 

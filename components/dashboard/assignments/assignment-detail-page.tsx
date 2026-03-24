@@ -2,7 +2,16 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
-import { ArrowLeft, ArrowRight, CalendarDays, ClipboardCheck, FilePenLine, Users } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  BookOpen,
+  BookOpenCheck,
+  CalendarDays,
+  ClipboardCheck,
+  FilePenLine,
+  Users,
+} from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { axiosInstance, authTokenStorage } from "@/lib/axios-instance";
 import { useGetData } from "@/hooks/use-get-data";
@@ -10,14 +19,24 @@ import { APIListResponse, APISingleResponse } from "@/types/api-response";
 import { AssignmentSubmissionViewer } from "./assignment-submission-viewer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   ASSIGNMENT_TYPE_LABELS,
   AssignmentDetail,
   AssignmentSubmission,
   AssignmentType,
 } from "./assignment-types";
-import { formatDateTimeLabel, normalizeAssignmentContent } from "./assignment-content-utils";
+import {
+  formatDateTimeLabel,
+  normalizeAssignmentContent,
+} from "./assignment-content-utils";
+import { usePatchData } from "@/hooks/use-patch-data";
 
 type AssignmentDetailPageProps = {
   classId: string;
@@ -36,13 +55,29 @@ export function AssignmentDetailPage({
   const canManage = role === "ADMIN" || role === "TEACHER";
   const isStudent = role === "STUDENT";
 
-  const { data: detailResponse, isLoading, isError } = useGetData<APISingleResponse<AssignmentDetail>>({
+  const {
+    data: detailResponse,
+    isLoading,
+    isError,
+  } = useGetData<APISingleResponse<AssignmentDetail>>({
     key: ["assignments", "detail", assignmentId],
     endpoint: `/assignments/${assignmentId}`,
     extractData: false,
     errorMessage: "Failed to load assignment detail.",
   });
-
+  const publishMutation = usePatchData<
+    unknown,
+    { id: string; published: boolean }
+  >({
+    key: ["assignments", "publish", classId],
+    endpoint: (variables) => `/assignments/${variables.id}/publish`,
+    successMessage: "Assignment status updated.",
+    errorMessage: "Failed to update assignment status.",
+    invalidateKeys: [
+      ["assignments", "list", classId],
+      ["assignments", "detail"],
+    ],
+  });
   const assignment = detailResponse?.data;
   const normalizedContent = useMemo(
     () => normalizeAssignmentContent(assignment?.content),
@@ -54,9 +89,9 @@ export function AssignmentDetailPage({
     enabled: isStudent,
     queryFn: async () => {
       try {
-        const response = await axiosInstance.get<APISingleResponse<AssignmentSubmission>>(
-          `/assignments/${assignmentId}/my-submission`,
-        );
+        const response = await axiosInstance.get<
+          APISingleResponse<AssignmentSubmission>
+        >(`/assignments/${assignmentId}/my-submission`);
         return response.data.data ?? null;
       } catch (error: unknown) {
         const maybeAxios = error as { response?: { status?: number } };
@@ -68,7 +103,9 @@ export function AssignmentDetailPage({
     },
   });
 
-  const { data: submissionStatsResponse } = useGetData<APIListResponse<AssignmentSubmission>>({
+  const { data: submissionStatsResponse } = useGetData<
+    APIListResponse<AssignmentSubmission>
+  >({
     key: ["assignments", "submissions", assignmentId, "stats"],
     endpoint: `/assignments/${assignmentId}/submissions`,
     extractData: false,
@@ -83,7 +120,9 @@ export function AssignmentDetailPage({
   if (isLoading) {
     return (
       <Card>
-        <CardContent className="py-8 text-sm text-muted-foreground">Loading assignment...</CardContent>
+        <CardContent className="py-8 text-sm text-muted-foreground">
+          Loading assignment...
+        </CardContent>
       </Card>
     );
   }
@@ -91,14 +130,19 @@ export function AssignmentDetailPage({
   if (isError || !assignment) {
     return (
       <Card>
-        <CardContent className="py-8 text-sm text-muted-foreground">Unable to load assignment.</CardContent>
+        <CardContent className="py-8 text-sm text-muted-foreground">
+          Unable to load assignment.
+        </CardContent>
       </Card>
     );
   }
 
   const maxScore = assignment.maxScore;
-  const assignmentTypeLabel = ASSIGNMENT_TYPE_LABELS[assignment.type as AssignmentType] ?? assignment.type;
-  const totalSubmitted = submissionStatsResponse?.meta?.total_items ?? assignment._count.submissions;
+  const assignmentTypeLabel =
+    ASSIGNMENT_TYPE_LABELS[assignment.type as AssignmentType] ??
+    assignment.type;
+  const totalSubmitted =
+    submissionStatsResponse?.meta?.total_items ?? assignment._count.submissions;
 
   return (
     <section className="space-y-6">
@@ -112,16 +156,26 @@ export function AssignmentDetailPage({
         </Link>
 
         <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-2xl font-semibold tracking-tight">{assignment.title}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {assignment.title}
+          </h1>
           <Badge variant="outline">{assignmentTypeLabel}</Badge>
           <Badge
-            variant={assignment.status === "PUBLISHED" ? "default" : assignment.status === "CLOSED" ? "destructive" : "secondary"}
+            variant={
+              assignment.status === "PUBLISHED"
+                ? "default"
+                : assignment.status === "CLOSED"
+                  ? "destructive"
+                  : "secondary"
+            }
           >
             {assignment.status}
           </Badge>
         </div>
 
-        <p className="text-sm text-muted-foreground">{assignment.description?.trim() || "No description."}</p>
+        <p className="text-sm text-muted-foreground">
+          {assignment.description?.trim() || "No description."}
+        </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -131,7 +185,9 @@ export function AssignmentDetailPage({
               <CalendarDays className="h-4 w-4" />
               Due date
             </p>
-            <p className="font-medium">{formatDateTimeLabel(assignment.dueAt)}</p>
+            <p className="font-medium">
+              {formatDateTimeLabel(assignment.dueAt)}
+            </p>
           </CardContent>
         </Card>
 
@@ -141,7 +197,9 @@ export function AssignmentDetailPage({
               <ClipboardCheck className="h-4 w-4" />
               Score policy
             </p>
-            <p className="font-medium">Pass {assignment.passingScore} / Max {assignment.maxScore}</p>
+            <p className="font-medium">
+              Pass {assignment.passingScore} / Max {assignment.maxScore}
+            </p>
           </CardContent>
         </Card>
 
@@ -159,13 +217,17 @@ export function AssignmentDetailPage({
       {normalizedContent.richTextHtml ? (
         <Card className="border-border/70">
           <CardHeader>
-            <CardTitle>Assignment Instructions</CardTitle>
-            <CardDescription>Overview only. Questions are solved in dedicated workspace.</CardDescription>
+            <CardTitle>Assignment Content</CardTitle>
+            <CardDescription>
+              Overview only. Questions are solved in dedicated workspace.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <article
               className="minimal-tiptap-editor prose prose-sm max-w-none dark:prose-invert"
-              dangerouslySetInnerHTML={{ __html: normalizedContent.richTextHtml }}
+              dangerouslySetInnerHTML={{
+                __html: normalizedContent.richTextHtml,
+              }}
             />
           </CardContent>
         </Card>
@@ -181,7 +243,9 @@ export function AssignmentDetailPage({
         <div className="flex flex-wrap gap-2">
           {isStudent ? (
             <Button asChild>
-              <Link href={`/dashboard/my-class/${classId}/assignments/${assignmentId}/work`}>
+              <Link
+                href={`/dashboard/my-class/${classId}/assignments/${assignmentId}/work`}
+              >
                 {mySubmission ? "Continue Workspace" : "Start Workspace"}
                 <ArrowRight className="h-4 w-4" />
               </Link>
@@ -189,17 +253,31 @@ export function AssignmentDetailPage({
           ) : null}
 
           {canManage ? (
-            <Button asChild>
-              <Link href={`/dashboard/my-class/${classId}/assignments/${assignmentId}/grade`}>
-                Open Grading Workspace
-                <ArrowRight className="h-4 w-4" />
-              </Link>
+            <Button
+              onClick={() =>
+                publishMutation.mutate({
+                  id: assignment.id,
+                  published: true,
+                })
+              }
+              disabled={
+                publishMutation.isPending || assignment.status === "PUBLISHED"
+              }
+            >
+              {assignment.status === "PUBLISHED" ? "Published" : "Publish"}
+              {assignment.status === "PUBLISHED" ? (
+                <BookOpenCheck />
+              ) : (
+                <BookOpen />
+              )}
             </Button>
           ) : null}
 
           {canManage ? (
             <Button asChild variant="outline">
-              <Link href={`/dashboard/my-class/${classId}/assignments/${assignmentId}/edit`}>
+              <Link
+                href={`/dashboard/my-class/${classId}/assignments/${assignmentId}/edit`}
+              >
                 <FilePenLine className="h-4 w-4" />
                 Edit Assignment
               </Link>
@@ -213,12 +291,15 @@ export function AssignmentDetailPage({
           <CardHeader>
             <CardTitle>Submission Overview</CardTitle>
             <CardDescription>
-              Total submitted: {totalSubmitted}. Open grading workspace to review full answers and give scores.
+              Total submitted: {totalSubmitted}. Open grading workspace to
+              review full answers and give scores.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Button asChild variant="outline">
-              <Link href={`/dashboard/my-class/${classId}/assignments/${assignmentId}/grade`}>
+              <Link
+                href={`/dashboard/my-class/${classId}/assignments/${assignmentId}/grade`}
+              >
                 Go to Grading Workspace
                 <ArrowRight className="h-4 w-4" />
               </Link>
@@ -242,14 +323,18 @@ export function AssignmentDetailPage({
               <>
                 <div className="flex flex-wrap gap-2 text-sm">
                   <Badge variant="outline">Status: {mySubmission.status}</Badge>
-                  <Badge variant="secondary">Score: {mySubmission.score ?? "-"}/{maxScore}</Badge>
+                  <Badge variant="secondary">
+                    Score: {mySubmission.score ?? "-"}/{maxScore}
+                  </Badge>
                 </div>
                 {mySubmission.feedback?.trim() ? (
                   <div className="rounded-md border border-border/60 bg-muted/20 p-3">
                     <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       Teacher Feedback
                     </p>
-                    <p className="mt-1 whitespace-pre-wrap text-sm">{mySubmission.feedback}</p>
+                    <p className="mt-1 whitespace-pre-wrap text-sm">
+                      {mySubmission.feedback}
+                    </p>
                   </div>
                 ) : null}
                 <AssignmentSubmissionViewer
@@ -260,7 +345,9 @@ export function AssignmentDetailPage({
                 />
               </>
             ) : (
-              <p className="text-sm text-muted-foreground">Submit from workspace page to see your latest answers here.</p>
+              <p className="text-sm text-muted-foreground">
+                Submit from workspace page to see your latest answers here.
+              </p>
             )}
           </CardContent>
         </Card>

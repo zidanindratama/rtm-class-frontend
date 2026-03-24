@@ -5,8 +5,8 @@ import axios, {
 } from "axios";
 import { ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY, USER_ROLE_KEY, type AuthRole } from "@/routes/auth-keys";
 
-const DEFAULT_API_BASE_URL = "https://backend.rtm-corndog.my.id/api/v1";
-const DEFAULT_CLIENT_DOMAIN = "http://localhost:3000";
+export const DEFAULT_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://backend.rtm-corndog.my.id/api/v1";
+export const DEFAULT_CLIENT_DOMAIN = process.env.NEXT_PUBLIC_CLIENT_DOMAIN || "https://app.rtm-corndog.my.id" || "http://localhost:3000";
 
 const ACCESS_TOKEN_MAX_AGE = 60 * 60 * 24;
 const REFRESH_TOKEN_MAX_AGE = 60 * 60 * 24 * 7;

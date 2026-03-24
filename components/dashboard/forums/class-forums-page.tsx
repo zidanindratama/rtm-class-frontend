@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { authTokenStorage } from "@/lib/axios-instance";
+import { formatDateLabel } from "@/lib/utils";
 import { ForumThreadFormPayload, ForumThreadListItem } from "./forum-types";
 
 type ClassForumsPageProps = {
@@ -56,12 +57,6 @@ type AuthMeResponseData = {
 
 type ForumSortBy = "createdAt" | "title";
 type ForumSortOrder = "asc" | "desc";
-
-function formatDateLabel(iso: string) {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "Invalid date";
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(date);
-}
 
 export function ClassForumsPage({
   classId,

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
 import {
   ArrowLeft,
   ArrowRight,
@@ -33,6 +34,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -57,8 +63,18 @@ import {
   McqQuestionDraft,
 } from "./assignment-form-utils";
 import { AssignmentAiAssistantDialog } from "./assignment-ai-assistant-dialog";
-import type { AiTransformJobType, AssignmentAiDraft } from "./assignment-ai-utils";
+import type {
+  AiTransformJobType,
+  AssignmentAiDraft,
+} from "./assignment-ai-utils";
 import { AssignmentQuestionBuilderSection } from "./assignment-question-builder-section";
+import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  appendSummaryToContentHtml,
+  cn,
+  formatDateLabel,
+  stripHtmlTags,
+} from "@/lib/utils";
 
 type ClassAssignmentsPageProps = {
   classId: string;
@@ -66,51 +82,47 @@ type ClassAssignmentsPageProps = {
   backLabel: string;
 };
 
-function formatDateLabel(iso?: string | null) {
-  if (!iso) return "-";
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "Invalid date";
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(date);
-}
-
-function stripHtml(value: string) {
-  return value
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .trim();
-}
-
 export function ClassAssignmentsPage({
   classId,
   backHref,
   backLabel,
 }: ClassAssignmentsPageProps) {
+  const pathname = usePathname();
   const role = authTokenStorage.getUserRole();
   const canManage = role === "ADMIN" || role === "TEACHER";
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | AssignmentType>("all");
-  const [statusFilter, setStatusFilter] = useState<"all" | AssignmentStatus>("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | AssignmentStatus>(
+    "all",
+  );
   const [page, setPage] = useState(1);
 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showAiAssistant, setShowAiAssistant] = useState(false);
+  const [showAiTooltip, setShowAiTooltip] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [assignmentType, setAssignmentType] = useState<AssignmentType>("TASK");
-  const [assignmentStatus, setAssignmentStatus] = useState<AssignmentStatus>("DRAFT");
+  const [assignmentStatus, setAssignmentStatus] =
+    useState<AssignmentStatus>("DRAFT");
   const [passingScore, setPassingScore] = useState("70");
   const [maxScore, setMaxScore] = useState("100");
   const [dueAt, setDueAt] = useState<Date | undefined>(undefined);
   const [contentHtml, setContentHtml] = useState("");
-  const [summaryText, setSummaryText] = useState("");
-  const [linkedMaterialId, setLinkedMaterialId] = useState<string | undefined>(undefined);
-  const [aiGeneratedOutputs, setAiGeneratedOutputs] = useState<AiTransformJobType[] | null>(null);
+  const [linkedMaterialId, setLinkedMaterialId] = useState<string | undefined>(
+    undefined,
+  );
+  const [aiGeneratedOutputs, setAiGeneratedOutputs] = useState<
+    AiTransformJobType[] | null
+  >(null);
   const [aiSourceMaterial, setAiSourceMaterial] = useState<{
     title: string;
     url: string;
   } | null>(null);
   const [mcqQuestions, setMcqQuestions] = useState<McqQuestionDraft[]>([]);
-  const [essayQuestions, setEssayQuestions] = useState<EssayQuestionDraft[]>([]);
+  const [essayQuestions, setEssayQuestions] = useState<EssayQuestionDraft[]>(
+    [],
+  );
   const [mcqBuilderPage, setMcqBuilderPage] = useState(1);
   const [essayBuilderPage, setEssayBuilderPage] = useState(1);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
@@ -121,6 +133,7 @@ export function ClassAssignmentsPage({
     successMessage: "Image uploaded successfully.",
     errorMessage: "Failed to upload image.",
   });
+  const isMobile = useIsMobile();
 
   const handleEditorUpload = async (file: File): Promise<string> => {
     if (!file.type.startsWith("image/")) {
@@ -131,7 +144,9 @@ export function ClassAssignmentsPage({
     return result.url;
   };
 
-  const { data: classDetailResponse } = useGetData<APISingleResponse<ClassDetailResponse>>({
+  const { data: classDetailResponse } = useGetData<
+    APISingleResponse<ClassDetailResponse>
+  >({
     key: ["class-assignments", "class", classId],
     endpoint: `/classes/${classId}`,
     extractData: false,
@@ -164,19 +179,21 @@ export function ClassAssignmentsPage({
     errorMessage: "Failed to load assignments.",
   });
 
-  const { data: gradebookResponse } = useGetData<APIListResponse<GradebookRow>>({
-    key: ["assignments", "gradebook", classId, gradebookPage],
-    endpoint: `/assignments/classes/${classId}/gradebook`,
-    extractData: false,
-    enabled: canManage,
-    params: {
-      page: gradebookPage,
-      per_page: 5,
-      sort_by: "avgScore",
-      sort_order: "desc",
+  const { data: gradebookResponse } = useGetData<APIListResponse<GradebookRow>>(
+    {
+      key: ["assignments", "gradebook", classId, gradebookPage],
+      endpoint: `/assignments/classes/${classId}/gradebook`,
+      extractData: false,
+      enabled: canManage,
+      params: {
+        page: gradebookPage,
+        per_page: 5,
+        sort_by: "avgScore",
+        sort_order: "desc",
+      },
+      errorMessage: "Failed to load gradebook.",
     },
-    errorMessage: "Failed to load gradebook.",
-  });
+  );
 
   const resetCreateForm = () => {
     setTitle("");
@@ -187,7 +204,6 @@ export function ClassAssignmentsPage({
     setMaxScore("100");
     setDueAt(undefined);
     setContentHtml("");
-    setSummaryText("");
     setLinkedMaterialId(undefined);
     setAiGeneratedOutputs(null);
     setAiSourceMaterial(null);
@@ -202,7 +218,10 @@ export function ClassAssignmentsPage({
     endpoint: "/assignments",
     successMessage: "Assignment created successfully.",
     errorMessage: "Failed to create assignment.",
-    invalidateKeys: [["assignments", "list", classId], ["classes", classId]],
+    invalidateKeys: [
+      ["assignments", "list", classId],
+      ["classes", classId],
+    ],
     options: {
       onSuccess: () => {
         setShowCreateForm(false);
@@ -211,12 +230,18 @@ export function ClassAssignmentsPage({
     },
   });
 
-  const publishMutation = usePatchData<unknown, { id: string; published: boolean }>({
+  const publishMutation = usePatchData<
+    unknown,
+    { id: string; published: boolean }
+  >({
     key: ["assignments", "publish", classId],
     endpoint: (variables) => `/assignments/${variables.id}/publish`,
     successMessage: "Assignment status updated.",
     errorMessage: "Failed to update assignment status.",
-    invalidateKeys: [["assignments", "list", classId], ["assignments", "detail"]],
+    invalidateKeys: [
+      ["assignments", "list", classId],
+      ["assignments", "detail"],
+    ],
   });
 
   const closeMutation = usePatchData<unknown, { id: string }>({
@@ -224,7 +249,10 @@ export function ClassAssignmentsPage({
     endpoint: (variables) => `/assignments/${variables.id}/close`,
     successMessage: "Assignment closed.",
     errorMessage: "Failed to close assignment.",
-    invalidateKeys: [["assignments", "list", classId], ["assignments", "detail"]],
+    invalidateKeys: [
+      ["assignments", "list", classId],
+      ["assignments", "detail"],
+    ],
   });
 
   const deleteMutation = useDeleteData<unknown, { id: string }>({
@@ -237,6 +265,8 @@ export function ClassAssignmentsPage({
 
   const classData = classDetailResponse?.data;
   const assignments = assignmentsResponse?.data ?? [];
+  console.log(assignments);
+
   const totalPages = Math.max(1, assignmentsResponse?.meta?.total_pages ?? 1);
   const currentPage = assignmentsResponse?.meta?.current_page ?? page;
   const pageNumbers = useMemo(
@@ -247,44 +277,74 @@ export function ClassAssignmentsPage({
   const gradebookRows = gradebookResponse?.data ?? [];
   const passingScoreValue = Number(passingScore || 0);
   const maxScoreValue = Number(maxScore || 0);
-  const isScorePolicyValid = maxScoreValue >= 1 && passingScoreValue >= 0 && passingScoreValue <= maxScoreValue;
+  const isScorePolicyValid =
+    maxScoreValue >= 1 &&
+    passingScoreValue >= 0 &&
+    passingScoreValue <= maxScoreValue;
   const isCreateDraftDirty =
     title.trim().length > 0 ||
     description.trim().length > 0 ||
-    stripHtml(contentHtml).length > 0 ||
-    summaryText.trim().length > 0 ||
+    stripHtmlTags(contentHtml).length > 0 ||
     assignmentType !== "TASK" ||
     assignmentStatus !== "DRAFT" ||
     passingScore !== "70" ||
     maxScore !== "100" ||
     Boolean(dueAt) ||
     Boolean(linkedMaterialId) ||
-    mcqQuestions.some((question) =>
-      question.question.trim() ||
-      question.optionA.trim() ||
-      question.optionB.trim() ||
-      question.optionC.trim() ||
-      question.optionD.trim(),
+    mcqQuestions.some(
+      (question) =>
+        question.question.trim() ||
+        question.optionA.trim() ||
+        question.optionB.trim() ||
+        question.optionC.trim() ||
+        question.optionD.trim(),
     ) ||
-    essayQuestions.some((question) => question.question.trim() || question.answerGuide.trim());
+    essayQuestions.some(
+      (question) => question.question.trim() || question.answerGuide.trim(),
+    );
+
+  useEffect(() => {
+    if (!canManage) return;
+
+    const targetPath = `/dashboard/my-class/${classId}/assignments`;
+    if (pathname !== targetPath) return;
+
+    const openTimeoutId = window.setTimeout(() => {
+      setShowAiTooltip(true);
+    }, 0);
+    const closeTimeoutId = window.setTimeout(() => {
+      setShowAiTooltip(false);
+    }, 1000);
+
+    return () => {
+      window.clearTimeout(openTimeoutId);
+      window.clearTimeout(closeTimeoutId);
+    };
+  }, [canManage, classId, pathname]);
 
   const isMcqType = assignmentType === "QUIZ_MCQ";
   const isEssayType = assignmentType === "QUIZ_ESSAY";
   const hasAiGeneratedOutputs = (aiGeneratedOutputs?.length ?? 0) > 0;
   const showMcqBuilder = hasAiGeneratedOutputs
-    ? aiGeneratedOutputs?.includes("MCQ") ?? false
+    ? (aiGeneratedOutputs?.includes("MCQ") ?? false)
     : isMcqType;
   const showEssayBuilder = hasAiGeneratedOutputs
-    ? aiGeneratedOutputs?.includes("ESSAY") ?? false
+    ? (aiGeneratedOutputs?.includes("ESSAY") ?? false)
     : isEssayType;
-  const showSummaryBuilder = hasAiGeneratedOutputs
-    ? aiGeneratedOutputs?.includes("SUMMARY") ?? false
-    : false;
   const builderQuestionPerPage = 10;
-  const mcqBuilderTotalPages = Math.max(1, Math.ceil(mcqQuestions.length / builderQuestionPerPage));
-  const essayBuilderTotalPages = Math.max(1, Math.ceil(essayQuestions.length / builderQuestionPerPage));
+  const mcqBuilderTotalPages = Math.max(
+    1,
+    Math.ceil(mcqQuestions.length / builderQuestionPerPage),
+  );
+  const essayBuilderTotalPages = Math.max(
+    1,
+    Math.ceil(essayQuestions.length / builderQuestionPerPage),
+  );
   const activeMcqBuilderPage = Math.min(mcqBuilderPage, mcqBuilderTotalPages);
-  const activeEssayBuilderPage = Math.min(essayBuilderPage, essayBuilderTotalPages);
+  const activeEssayBuilderPage = Math.min(
+    essayBuilderPage,
+    essayBuilderTotalPages,
+  );
   const questionPayload = useMemo(
     () =>
       buildQuestionPayload({
@@ -299,7 +359,9 @@ export function ClassAssignmentsPage({
   const applyAiDraft = (draft: AssignmentAiDraft) => {
     if (
       isCreateDraftDirty &&
-      !window.confirm("Current assignment draft will be replaced with the AI-generated draft. Continue?")
+      !window.confirm(
+        "Current assignment draft will be replaced with the AI-generated draft. Continue?",
+      )
     ) {
       return false;
     }
@@ -312,8 +374,7 @@ export function ClassAssignmentsPage({
     setPassingScore("70");
     setMaxScore("100");
     setDueAt(undefined);
-    setContentHtml(draft.contentHtml);
-    setSummaryText(draft.summaryText);
+    setContentHtml(appendSummaryToContentHtml(draft.contentHtml, draft.summaryText));
     setLinkedMaterialId(draft.materialId);
     setAiGeneratedOutputs(draft.outputs.length > 0 ? draft.outputs : null);
     setAiSourceMaterial({
@@ -346,13 +407,15 @@ export function ClassAssignmentsPage({
         </p>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <Card className="border-border/70">
+      <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <Card className="min-w-0 border-border/70">
           <CardHeader>
             <CardTitle>Assignment Timeline</CardTitle>
-            <CardDescription>Filter and open assignment details quickly.</CardDescription>
+            <CardDescription>
+              Filter and open assignment details quickly.
+            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="min-w-0 space-y-4">
             <div className="grid gap-3 md:grid-cols-4">
               <label className="relative block md:col-span-2">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -379,7 +442,9 @@ export function ClassAssignmentsPage({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Types</SelectItem>
-                  {(Object.keys(ASSIGNMENT_TYPE_LABELS) as AssignmentType[]).map((type) => (
+                  {(
+                    Object.keys(ASSIGNMENT_TYPE_LABELS) as AssignmentType[]
+                  ).map((type) => (
                     <SelectItem key={type} value={type}>
                       {ASSIGNMENT_TYPE_LABELS[type]}
                     </SelectItem>
@@ -399,27 +464,40 @@ export function ClassAssignmentsPage({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
-                  {(Object.keys(ASSIGNMENT_STATUS_LABELS) as AssignmentStatus[]).map(
-                    (status) => (
-                      <SelectItem key={status} value={status}>
-                        {ASSIGNMENT_STATUS_LABELS[status]}
-                      </SelectItem>
-                    ),
-                  )}
+                  {(
+                    Object.keys(ASSIGNMENT_STATUS_LABELS) as AssignmentStatus[]
+                  ).map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {ASSIGNMENT_STATUS_LABELS[status]}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
 
             {canManage ? (
               <div className="flex flex-wrap justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowAiAssistant(true)}
-                >
-                  <Sparkles className="h-4 w-4" />
-                  AI Assistant
-                </Button>
+                <Tooltip open={showAiTooltip} onOpenChange={setShowAiTooltip}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="gradient"
+                      onClick={() => {
+                        setShowAiTooltip(false);
+                        setShowAiAssistant(true);
+                      }}
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      AI Assistant
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent
+                    side={isMobile ? "top" : "left"}
+                    sideOffset={8}
+                  >
+                    Try AI Features!
+                  </TooltipContent>
+                </Tooltip>
                 <Button
                   type="button"
                   variant={showCreateForm ? "outline" : "default"}
@@ -432,10 +510,12 @@ export function ClassAssignmentsPage({
             ) : null}
 
             {showCreateForm ? (
-              <div className="space-y-5 rounded-2xl border border-border/70 bg-muted/20 p-5 md:p-6">
+              <div className="min-w-0 space-y-5 rounded-2xl border border-border/70 bg-muted/20 p-2 md:p-6">
                 {aiSourceMaterial ? (
                   <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm">
-                    <p className="font-semibold text-foreground">AI draft source linked</p>
+                    <p className="font-semibold text-foreground">
+                      AI draft source linked
+                    </p>
                     <p className="mt-1 text-muted-foreground">
                       This draft is linked to the source material{" "}
                       {aiSourceMaterial.url.trim() ? (
@@ -448,7 +528,9 @@ export function ClassAssignmentsPage({
                           {aiSourceMaterial.title}
                         </a>
                       ) : (
-                        <span className="font-medium text-foreground">{aiSourceMaterial.title}</span>
+                        <span className="font-medium text-foreground">
+                          {aiSourceMaterial.title}
+                        </span>
                       )}
                       .
                     </p>
@@ -458,7 +540,8 @@ export function ClassAssignmentsPage({
                 <div className="rounded-xl border border-border/70 bg-background/80 p-4">
                   <p className="text-sm font-semibold">Assignment Overview</p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Set core information first so this assignment is easy to identify in class timeline.
+                    Set core information first so this assignment is easy to
+                    identify in class timeline.
                   </p>
                   <div className="mt-4 grid gap-3 md:grid-cols-2">
                     <Input
@@ -485,7 +568,11 @@ export function ClassAssignmentsPage({
                         <SelectValue placeholder="Type" />
                       </SelectTrigger>
                       <SelectContent>
-                        {(Object.keys(ASSIGNMENT_TYPE_LABELS) as AssignmentType[]).map((type) => (
+                        {(
+                          Object.keys(
+                            ASSIGNMENT_TYPE_LABELS,
+                          ) as AssignmentType[]
+                        ).map((type) => (
                           <SelectItem key={type} value={type}>
                             {ASSIGNMENT_TYPE_LABELS[type]}
                           </SelectItem>
@@ -494,19 +581,23 @@ export function ClassAssignmentsPage({
                     </Select>
                     <Select
                       value={assignmentStatus}
-                      onValueChange={(value) => setAssignmentStatus(value as AssignmentStatus)}
+                      onValueChange={(value) =>
+                        setAssignmentStatus(value as AssignmentStatus)
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Status" />
                       </SelectTrigger>
                       <SelectContent>
-                        {(Object.keys(ASSIGNMENT_STATUS_LABELS) as AssignmentStatus[]).map(
-                          (status) => (
-                            <SelectItem key={status} value={status}>
-                              {ASSIGNMENT_STATUS_LABELS[status]}
-                            </SelectItem>
-                          ),
-                        )}
+                        {(
+                          Object.keys(
+                            ASSIGNMENT_STATUS_LABELS,
+                          ) as AssignmentStatus[]
+                        ).map((status) => (
+                          <SelectItem key={status} value={status}>
+                            {ASSIGNMENT_STATUS_LABELS[status]}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -516,20 +607,27 @@ export function ClassAssignmentsPage({
                   <div className="rounded-xl border border-border/70 bg-background/80 p-4">
                     <p className="text-sm font-semibold">Scoring Policy</p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Define the passing threshold and total achievable score so students clearly know grading expectations.
+                      Define the passing threshold and total achievable score so
+                      students clearly know grading expectations.
                     </p>
                     <div className="mt-3 grid gap-3">
                       <label className="space-y-1">
-                        <p className="text-xs text-muted-foreground">Minimum Passing Score</p>
+                        <p className="text-xs text-muted-foreground">
+                          Minimum Passing Score
+                        </p>
                         <Input
                           type="number"
                           value={passingScore}
-                          onChange={(event) => setPassingScore(event.target.value)}
+                          onChange={(event) =>
+                            setPassingScore(event.target.value)
+                          }
                           placeholder="Example: 70"
                         />
                       </label>
                       <label className="space-y-1">
-                        <p className="text-xs text-muted-foreground">Maximum Score</p>
+                        <p className="text-xs text-muted-foreground">
+                          Maximum Score
+                        </p>
                         <Input
                           type="number"
                           value={maxScore}
@@ -540,13 +638,19 @@ export function ClassAssignmentsPage({
                     </div>
                     <p className="mt-2 text-xs text-muted-foreground">
                       Students pass when score is at least{" "}
-                      <span className="font-medium text-foreground">{passingScoreValue || 0}</span>{" "}
+                      <span className="font-medium text-foreground">
+                        {passingScoreValue || 0}
+                      </span>{" "}
                       out of{" "}
-                      <span className="font-medium text-foreground">{maxScoreValue || 0}</span>.
+                      <span className="font-medium text-foreground">
+                        {maxScoreValue || 0}
+                      </span>
+                      .
                     </p>
                     {!isScorePolicyValid ? (
                       <p className="mt-2 text-xs text-destructive">
-                        Passing score must be less than or equal to maximum score.
+                        Passing score must be less than or equal to maximum
+                        score.
                       </p>
                     ) : null}
                   </div>
@@ -554,7 +658,8 @@ export function ClassAssignmentsPage({
                   <div className="rounded-xl border border-border/70 bg-background/80 p-4">
                     <p className="text-sm font-semibold">Due Date & Time</p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Choose a clear deadline for students. Leave empty if there is no deadline.
+                      Choose a clear deadline for students. Leave empty if there
+                      is no deadline.
                     </p>
                     <div className="mt-3 space-y-2">
                       <DateTimePicker
@@ -581,16 +686,22 @@ export function ClassAssignmentsPage({
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-border/70 bg-background/80 p-4">
-                  <p className="text-sm font-semibold">Assignment Content</p>
-                  <p className="text-xs text-muted-foreground">
-                    Use rich text to explain instructions, context, and rules for students.
-                  </p>
+                <div className="min-w-0 rounded-xl border border-border/70 bg-background/80 p-4">
+                  <div className="mb-3 space-y-1">
+                    <p className="text-sm font-semibold">Assignment Content</p>
+                    <p className="text-xs text-muted-foreground">
+                      Use rich text to explain instructions, context, summary,
+                      and rules for students.
+                    </p>
+                  </div>
                   <MinimalTiptapEditor
                     value={contentHtml}
                     onChange={(value) => setContentHtml(String(value ?? ""))}
-                    className="w-full min-h-140"
-                    editorClassName="focus:outline-hidden p-5"
+                    className={cn(
+                      "w-full min-w-0 min-h-[22rem] sm:min-h-[28rem]",
+                    )}
+                    editorContentClassName="some-class"
+                    editorClassName="focus:outline-hidden p-3 sm:p-5"
                     placeholder="Write assignment instructions..."
                     throttleDelay={0}
                     editable
@@ -661,21 +772,6 @@ export function ClassAssignmentsPage({
                   />
                 )}
 
-                {showSummaryBuilder ? (
-                  <div className="rounded-xl border border-border/70 bg-background/80 p-4">
-                    <p className="text-sm font-semibold">Summary</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Review and edit the generated summary before saving this assignment.
-                    </p>
-                    <Textarea
-                      value={summaryText}
-                      onChange={(event) => setSummaryText(event.target.value)}
-                      placeholder="Summary text"
-                      className="mt-3 min-h-[140px]"
-                    />
-                  </div>
-                ) : null}
-
                 <div className="flex justify-end border-t border-border/60 pt-4">
                   <Button
                     type="button"
@@ -692,7 +788,6 @@ export function ClassAssignmentsPage({
                         dueAt: dueAt?.toISOString(),
                         content: {
                           richTextHtml: contentHtml,
-                          summary: showSummaryBuilder ? summaryText.trim() || undefined : undefined,
                           questionSet: questionPayload,
                         },
                       })
@@ -703,34 +798,48 @@ export function ClassAssignmentsPage({
                       !isScorePolicyValid
                     }
                   >
-                    {createMutation.isPending ? "Creating..." : "Save Assignment"}
+                    {createMutation.isPending
+                      ? "Creating..."
+                      : "Save Assignment"}
                   </Button>
                 </div>
               </div>
             ) : null}
 
             {isLoading ? (
-              <p className="py-8 text-sm text-muted-foreground">Loading assignments...</p>
+              <p className="py-8 text-sm text-muted-foreground">
+                Loading assignments...
+              </p>
             ) : isError ? (
-              <p className="py-8 text-sm text-muted-foreground">Unable to load assignments.</p>
+              <p className="py-8 text-sm text-muted-foreground">
+                Unable to load assignments.
+              </p>
             ) : assignments.length === 0 ? (
               <div className="rounded-lg border border-dashed border-border/70 p-8 text-center">
-                <p className="text-sm text-muted-foreground">No assignments found.</p>
+                <p className="text-sm text-muted-foreground">
+                  No assignments found.
+                </p>
               </div>
             ) : (
               <>
                 <div className="space-y-3">
                   {assignments.map((assignment) => (
-                    <article key={assignment.id} className="rounded-xl border border-border/70 p-4">
+                    <article
+                      key={assignment.id}
+                      className="rounded-xl border border-border/70 p-4"
+                    >
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div>
                           <p className="font-semibold">{assignment.title}</p>
                           <p className="mt-1 text-sm text-muted-foreground">
-                            {assignment.description?.trim() || "No description."}
+                            {assignment.description?.trim() ||
+                              "No description."}
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Badge variant="secondary">{ASSIGNMENT_TYPE_LABELS[assignment.type]}</Badge>
+                          <Badge variant="secondary">
+                            {ASSIGNMENT_TYPE_LABELS[assignment.type]}
+                          </Badge>
                           <Badge
                             variant={
                               assignment.status === "PUBLISHED"
@@ -756,13 +865,16 @@ export function ClassAssignmentsPage({
                         </span>
                         <span className="inline-flex items-center gap-1.5">
                           <BookCheck className="h-3.5 w-3.5" />
-                          Pass/Max: {assignment.passingScore}/{assignment.maxScore}
+                          Pass/Max: {assignment.passingScore}/
+                          {assignment.maxScore}
                         </span>
                       </div>
 
                       <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-3">
                         <Button asChild size="sm" variant="outline">
-                          <Link href={`/dashboard/my-class/${classId}/assignments/${assignment.id}`}>
+                          <Link
+                            href={`/dashboard/my-class/${classId}/assignments/${assignment.id}`}
+                          >
                             Open Detail
                             <ArrowRight className="h-4 w-4" />
                           </Link>
@@ -775,7 +887,10 @@ export function ClassAssignmentsPage({
                                 type="button"
                                 size="sm"
                                 onClick={() =>
-                                  publishMutation.mutate({ id: assignment.id, published: true })
+                                  publishMutation.mutate({
+                                    id: assignment.id,
+                                    published: true,
+                                  })
                                 }
                                 disabled={publishMutation.isPending}
                               >
@@ -788,7 +903,10 @@ export function ClassAssignmentsPage({
                                   size="sm"
                                   variant="outline"
                                   onClick={() =>
-                                    publishMutation.mutate({ id: assignment.id, published: false })
+                                    publishMutation.mutate({
+                                      id: assignment.id,
+                                      published: false,
+                                    })
                                   }
                                   disabled={publishMutation.isPending}
                                 >
@@ -798,7 +916,9 @@ export function ClassAssignmentsPage({
                                   type="button"
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => closeMutation.mutate({ id: assignment.id })}
+                                  onClick={() =>
+                                    closeMutation.mutate({ id: assignment.id })
+                                  }
                                   disabled={closeMutation.isPending}
                                 >
                                   Close
@@ -826,7 +946,9 @@ export function ClassAssignmentsPage({
                     <button
                       type="button"
                       disabled={currentPage <= 1}
-                      onClick={() => setPage((current) => Math.max(1, current - 1))}
+                      onClick={() =>
+                        setPage((current) => Math.max(1, current - 1))
+                      }
                       className="h-9 rounded-md border border-border/70 px-3 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       Previous
@@ -848,7 +970,9 @@ export function ClassAssignmentsPage({
                     <button
                       type="button"
                       disabled={currentPage >= totalPages}
-                      onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                      onClick={() =>
+                        setPage((current) => Math.min(totalPages, current + 1))
+                      }
                       className="h-9 rounded-md border border-border/70 px-3 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       Next
@@ -879,12 +1003,19 @@ export function ClassAssignmentsPage({
               ) : (
                 <>
                   {gradebookRows.map((row) => (
-                    <div key={row.student.id} className="rounded-lg border border-border/70 p-3">
+                    <div
+                      key={row.student.id}
+                      className="rounded-lg border border-border/70 p-3"
+                    >
                       <p className="font-medium">{row.student.fullName}</p>
-                      <p className="text-xs text-muted-foreground">{row.student.email}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {row.student.email}
+                      </p>
                       <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
                         <span>Avg: {row.avgScore?.toFixed(1) ?? "-"}</span>
-                        <span>Submitted: {row.submittedCount}/{row.totalAssignments}</span>
+                        <span>
+                          Submitted: {row.submittedCount}/{row.totalAssignments}
+                        </span>
                         <span>Rate: {row.submissionRate.toFixed(0)}%</span>
                       </div>
                     </div>
@@ -896,8 +1027,14 @@ export function ClassAssignmentsPage({
                         type="button"
                         size="sm"
                         variant="outline"
-                        onClick={() => setGradebookPage((current) => Math.max(1, current - 1))}
-                        disabled={(gradebookResponse?.meta?.current_page ?? 1) <= 1}
+                        onClick={() =>
+                          setGradebookPage((current) =>
+                            Math.max(1, current - 1),
+                          )
+                        }
+                        disabled={
+                          (gradebookResponse?.meta?.current_page ?? 1) <= 1
+                        }
                       >
                         Prev
                       </Button>
@@ -911,7 +1048,10 @@ export function ClassAssignmentsPage({
                         variant="outline"
                         onClick={() =>
                           setGradebookPage((current) =>
-                            Math.min(gradebookResponse?.meta?.total_pages ?? 1, current + 1),
+                            Math.min(
+                              gradebookResponse?.meta?.total_pages ?? 1,
+                              current + 1,
+                            ),
                           )
                         }
                         disabled={
@@ -927,7 +1067,8 @@ export function ClassAssignmentsPage({
               )
             ) : (
               <p className="text-muted-foreground">
-                Use assignment detail pages to submit your answers and check your grades.
+                Use assignment detail pages to submit your answers and check
+                your grades.
               </p>
             )}
           </CardContent>

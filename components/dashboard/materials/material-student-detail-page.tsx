@@ -25,18 +25,12 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { MATERIAL_TYPE_LABELS } from "./material-constants";
 import { MaterialDetailResponse } from "./material-types";
+import { formatDateLabel } from "@/lib/utils";
 
 type MaterialStudentDetailPageProps = {
   classId: string;
   materialId: string;
 };
-
-function formatDateLabel(iso?: string) {
-  if (!iso) return "-";
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "-";
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(date);
-}
 
 function resolveMaterialType(type?: string) {
   const normalizedType = type?.trim().toUpperCase() ?? "OTHER";
@@ -129,7 +123,7 @@ export function MaterialStudentDetailPage({
               <Badge variant="secondary">{materialTypeLabel}</Badge>
               <Badge variant="outline">
                 <CalendarDays className="h-3.5 w-3.5" />
-                {formatDateLabel(material.createdAt)}
+                {formatDateLabel(material.createdAt, { invalidLabel: "-" })}
               </Badge>
             </div>
             <CardTitle className="text-2xl leading-tight">{material.title}</CardTitle>

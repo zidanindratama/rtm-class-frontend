@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -25,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/spinner";
 import {
   type AiTransformJob,
@@ -59,7 +59,7 @@ const JOB_POLL_INTERVAL_MS = 3000;
 const JOB_POLL_MAX_ATTEMPTS = 40;
 const OUTPUT_FETCH_RETRIES = 5;
 const OUTPUT_FETCH_INTERVAL_MS = 2000;
-const OUTPUT_OPTIONS: AiTransformJobType[] = ["MCQ", "ESSAY", "SUMMARY"];
+const SUMMARY_MAX_WORDS_DEFAULT = 200;
 
 const sleep = (delayMs: number) =>
   new Promise<void>((resolve) => {
@@ -154,10 +154,9 @@ export function AssignmentAiAssistantDialog({
   onApplyDraft,
 }: AssignmentAiAssistantDialogProps) {
   const [assignmentTitle, setAssignmentTitle] = useState("");
-  const [selectedOutputs, setSelectedOutputs] = useState<AiTransformJobType[]>(["MCQ"]);
+  const [selectedOutput, setSelectedOutput] = useState<"MCQ" | "ESSAY">("MCQ");
   const [mcqCount, setMcqCount] = useState("10");
   const [essayCount, setEssayCount] = useState("5");
-  const [summaryMaxWords, setSummaryMaxWords] = useState("200");
   const [selectedMaterialId, setSelectedMaterialId] = useState("");
   const [processingStage, setProcessingStage] = useState("");
 
@@ -194,13 +193,9 @@ export function AssignmentAiAssistantDialog({
         throw new Error("Assignment title must be at least 3 characters.");
       }
 
-      if (selectedOutputs.length === 0) {
-        throw new Error("Select at least one output type.");
-      }
-
-      const mcqSelected = selectedOutputs.includes("MCQ");
-      const essaySelected = selectedOutputs.includes("ESSAY");
-      const summarySelected = selectedOutputs.includes("SUMMARY");
+      const selectedOutputs: AiTransformJobType[] = [selectedOutput, "SUMMARY"];
+      const mcqSelected = selectedOutput === "MCQ";
+      const essaySelected = selectedOutput === "ESSAY";
 
       const parsedMcqCount = Number(mcqCount);
       if (
@@ -218,21 +213,13 @@ export function AssignmentAiAssistantDialog({
         throw new Error("Essay count must be between 1 and 100.");
       }
 
-      const parsedSummaryMaxWords = Number(summaryMaxWords);
-      if (
-        summarySelected
-        && (!Number.isInteger(parsedSummaryMaxWords) || parsedSummaryMaxWords < 50 || parsedSummaryMaxWords > 2000)
-      ) {
-        throw new Error("Summary max words must be between 50 and 2000.");
-      }
-
       const transformPayload = {
         materialId: selectedMaterial.id,
         outputs: selectedOutputs,
         options: {
           mcqCount: Number.isInteger(parsedMcqCount) ? parsedMcqCount : 10,
           essayCount: Number.isInteger(parsedEssayCount) ? parsedEssayCount : 5,
-          summaryMaxWords: Number.isInteger(parsedSummaryMaxWords) ? parsedSummaryMaxWords : 200,
+          summaryMaxWords: SUMMARY_MAX_WORDS_DEFAULT,
           mcpEnabled: true,
         },
       };
@@ -240,6 +227,7 @@ export function AssignmentAiAssistantDialog({
       logAssignmentAiAssistant("Starting AI transform request", {
         classId,
         selectedMaterialId,
+        selectedOutput,
         selectedOutputs,
         assignmentTitle: trimmedTitle,
         transformPayload,
@@ -260,26 +248,26 @@ export function AssignmentAiAssistantDialog({
         const queuedJobs = transformResponse.data.data.jobs ?? [];
         const generatedOutputs: MaterialAiOutput[] = [];
 
-        for (const selectedOutput of selectedOutputs) {
-          const createdJob = queuedJobs.find((job) => job.type === selectedOutput);
+        for (const outputType of selectedOutputs) {
+          const createdJob = queuedJobs.find((job) => job.type === outputType);
           if (!createdJob) {
-            throw new Error(`AI job for ${selectedOutput} was queued but no matching job was returned.`);
+            throw new Error(`AI job for ${outputType} was queued but no matching job was returned.`);
           }
 
-          setProcessingStage(`Generating ${selectedOutput} output...`);
+          setProcessingStage(`Generating ${outputType} output...`);
           const job = await pollUntilJobTerminal(createdJob.id);
           if (job.status !== "succeeded") {
-            throw new Error(job.lastError?.trim() || `AI ${selectedOutput} job failed.`);
+            throw new Error(job.lastError?.trim() || `AI ${outputType} job failed.`);
           }
 
-          const output = await fetchMaterialOutput(selectedMaterial.id, createdJob.id, selectedOutput);
+          const output = await fetchMaterialOutput(selectedMaterial.id, createdJob.id, outputType);
           generatedOutputs.push(output);
         }
 
         let generatedType: AssignmentAiDraft["type"] = "TASK";
-        if (selectedOutputs.includes("MCQ")) {
+        if (selectedOutput === "MCQ") {
           generatedType = "QUIZ_MCQ";
-        } else if (selectedOutputs.includes("ESSAY")) {
+        } else if (selectedOutput === "ESSAY") {
           generatedType = "QUIZ_ESSAY";
         }
 
@@ -353,10 +341,9 @@ export function AssignmentAiAssistantDialog({
 
   const resetDialogState = () => {
     setAssignmentTitle("");
-    setSelectedOutputs(["MCQ"]);
+    setSelectedOutput("MCQ");
     setMcqCount("10");
     setEssayCount("5");
-    setSummaryMaxWords("200");
     setSelectedMaterialId("");
     setProcessingStage("");
     assistantMutation.reset();
@@ -443,7 +430,10 @@ export function AssignmentAiAssistantDialog({
           onOpenChange(true);
         }}
       >
-        <DialogContent className="max-w-2xl" showCloseButton={!pending}>
+        <DialogContent
+          className="max-h-[90dvh] max-w-2xl overflow-hidden sm:max-h-[85vh]"
+          showCloseButton={!pending}
+        >
           <DialogHeader>
             <DialogTitle className="inline-flex items-center gap-2">
               <Sparkles className="h-5 w-5" />
@@ -454,6 +444,7 @@ export function AssignmentAiAssistantDialog({
             </DialogDescription>
           </DialogHeader>
 
+          <ScrollArea className="max-h-[calc(90dvh-14rem)] pr-3 sm:max-h-[calc(85vh-14rem)]">
           <div className="grid gap-5">
             <div className="space-y-2">
               <Label htmlFor="ai-source-material">Source Material</Label>
@@ -525,37 +516,26 @@ export function AssignmentAiAssistantDialog({
             ) : null}
 
             <div className="space-y-2">
-              <Label>Outputs</Label>
-              <div className="grid gap-2 rounded-lg border border-border/70 bg-muted/20 p-3 sm:grid-cols-3">
-                {OUTPUT_OPTIONS.map((output) => (
-                  <label
-                    key={output}
-                    className="inline-flex items-center gap-2 rounded-md border border-border/60 bg-background/70 px-3 py-2 text-sm"
-                  >
-                    <Checkbox
-                      checked={selectedOutputs.includes(output)}
-                      onCheckedChange={(checked) => {
-                        const shouldEnable = checked === true;
-                        setSelectedOutputs((current) => {
-                          if (shouldEnable) {
-                            return current.includes(output) ? current : [...current, output];
-                          }
-
-                          return current.filter((item) => item !== output);
-                        });
-                      }}
-                      disabled={pending}
-                    />
-                    {output}
-                  </label>
-                ))}
-              </div>
+              <Label htmlFor="ai-output-type">Output Type</Label>
+              <Select
+                value={selectedOutput}
+                onValueChange={(value) => setSelectedOutput(value as "MCQ" | "ESSAY")}
+                disabled={pending}
+              >
+                <SelectTrigger id="ai-output-type">
+                  <SelectValue placeholder="Choose output type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="MCQ">MCQ (Multiple Choice Question)</SelectItem>
+                  <SelectItem value="ESSAY">Essay</SelectItem>
+                </SelectContent>
+              </Select>
               <p className="text-xs text-muted-foreground">
-                Select one or more outputs. Generated MCQ, Essay, and Summary sections will be applied to the form.
+                Summary output is generated automatically in the background.
               </p>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="ai-mcq-count">MCQ Count</Label>
                 <Input
@@ -565,7 +545,7 @@ export function AssignmentAiAssistantDialog({
                   max={100}
                   value={mcqCount}
                   onChange={(event) => setMcqCount(event.target.value)}
-                  disabled={pending || !selectedOutputs.includes("MCQ")}
+                  disabled={pending || selectedOutput !== "MCQ"}
                 />
               </div>
 
@@ -578,20 +558,7 @@ export function AssignmentAiAssistantDialog({
                   max={100}
                   value={essayCount}
                   onChange={(event) => setEssayCount(event.target.value)}
-                  disabled={pending || !selectedOutputs.includes("ESSAY")}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="ai-summary-max-words">Summary Max Words</Label>
-                <Input
-                  id="ai-summary-max-words"
-                  type="number"
-                  min={50}
-                  max={2000}
-                  value={summaryMaxWords}
-                  onChange={(event) => setSummaryMaxWords(event.target.value)}
-                  disabled={pending || !selectedOutputs.includes("SUMMARY")}
+                  disabled={pending || selectedOutput !== "ESSAY"}
                 />
               </div>
             </div>
@@ -613,16 +580,10 @@ export function AssignmentAiAssistantDialog({
               </div>
             ) : null}
           </div>
+          <ScrollBar orientation="vertical"/>
+          </ScrollArea>
 
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={closeDialog}
-              disabled={pending}
-            >
-              Cancel
-            </Button>
+          <DialogFooter className="pt-4">
             <Button
               type="button"
               onClick={() => assistantMutation.mutate()}
@@ -631,7 +592,6 @@ export function AssignmentAiAssistantDialog({
                 || materialsQuery.isLoading
                 || materialsQuery.isError
                 || !selectedMaterialId
-                || selectedOutputs.length === 0
               }
             >
               {pending ? (

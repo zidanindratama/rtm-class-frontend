@@ -3,11 +3,16 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { AssignmentQuestionType, AssignmentType, SubmissionQuestionGrade } from "./assignment-types";
+import {
+  AssignmentQuestionType,
+  AssignmentType,
+  SubmissionQuestionGrade,
+} from "./assignment-types";
 import {
   normalizeAssignmentContent,
   normalizeSubmissionAnswers,
 } from "./assignment-content-utils";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 type AssignmentSubmissionViewerProps = {
   assignmentType: AssignmentType;
@@ -49,10 +54,14 @@ export function AssignmentSubmissionViewer({
         <div className="space-y-3">
           {normalizedAnswers.responses.map((response, index) => {
             const question = mcqMap.get(response.questionId);
-            const optionText = question?.options[response.answer.charCodeAt(0) - 65] ?? "";
+            const optionText =
+              question?.options[response.answer.charCodeAt(0) - 65] ?? "";
 
             return (
-              <Card key={`${response.questionId}-${index}`} className="border-border/60">
+              <Card
+                key={`${response.questionId}-${index}`}
+                className="border-border/60"
+              >
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-semibold">
                     {index + 1}. {question?.question || "Question not found"}
@@ -60,12 +69,23 @@ export function AssignmentSubmissionViewer({
                 </CardHeader>
                 <CardContent className="space-y-1 text-sm">
                   <p>
-                    Student answer: <span className="font-medium">{ANSWER_LABELS[response.answer]}</span>
+                    Student answer:{" "}
+                    <span className="font-medium">
+                      {ANSWER_LABELS[response.answer]}
+                    </span>
                   </p>
-                  {optionText ? <p className="text-muted-foreground">{optionText}</p> : null}
+                  {optionText ? (
+                    <p className="text-muted-foreground">{optionText}</p>
+                  ) : null}
                   {question ? (
                     <p className="text-xs text-muted-foreground">
-                      Correct key: {ANSWER_LABELS[question.correctOption]} ({question.options[question.correctOption.charCodeAt(0) - 65]})
+                      Correct key: {ANSWER_LABELS[question.correctOption]} (
+                      {
+                        question.options[
+                          question.correctOption.charCodeAt(0) - 65
+                        ]
+                      }
+                      )
                     </p>
                   ) : null}
                 </CardContent>
@@ -85,7 +105,10 @@ export function AssignmentSubmissionViewer({
             const question = essayMap.get(response.questionId);
 
             return (
-              <Card key={`${response.questionId}-${index}`} className="border-border/60">
+              <Card
+                key={`${response.questionId}-${index}`}
+                className="border-border/60"
+              >
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-semibold">
                     {index + 1}. {question?.question || "Question not found"}
@@ -93,13 +116,21 @@ export function AssignmentSubmissionViewer({
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm">
                   <div>
-                    <p className="text-xs text-muted-foreground">Student answer</p>
-                    <p className="whitespace-pre-wrap">{response.answer || "-"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Student answer
+                    </p>
+                    <p className="whitespace-pre-wrap">
+                      {response.answer || "-"}
+                    </p>
                   </div>
                   {question?.answerGuide ? (
                     <div>
-                      <p className="text-xs text-muted-foreground">Answer guide</p>
-                      <p className="whitespace-pre-wrap text-muted-foreground">{question.answerGuide}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Answer guide
+                      </p>
+                      <p className="whitespace-pre-wrap text-muted-foreground">
+                        {question.answerGuide}
+                      </p>
                     </div>
                   ) : null}
                 </CardContent>
@@ -117,8 +148,11 @@ export function AssignmentSubmissionViewer({
         <Card className="border-border/60">
           <CardContent className="space-y-2 pt-4 text-sm">
             <p className="text-xs text-muted-foreground">Submitted text</p>
-            <p className="whitespace-pre-wrap">{normalizedAnswers.text || "-"}</p>
-            {normalizedAnswers.attachments && normalizedAnswers.attachments.length > 0 ? (
+            <p className="whitespace-pre-wrap">
+              {normalizedAnswers.text || "-"}
+            </p>
+            {normalizedAnswers.attachments &&
+            normalizedAnswers.attachments.length > 0 ? (
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground">Attachment URLs</p>
                 {normalizedAnswers.attachments.map((url) => (
@@ -152,40 +186,57 @@ export function AssignmentSubmissionViewer({
       ) : null}
 
       {!normalizedAnswers ? (
-        <p className="text-sm text-muted-foreground">No readable answer data.</p>
+        <p className="text-sm text-muted-foreground">
+          No readable answer data.
+        </p>
       ) : null}
 
       {questionGrades && questionGrades.length > 0 ? (
         <Card className="border-border/60">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold">Per-question grading</CardTitle>
+            <CardTitle className="text-sm font-semibold">
+              Per-question grading
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {questionGrades.map((grade, index) => (
-              <div key={grade.id} className="space-y-1">
-                <div className="flex flex-wrap items-center gap-2 text-sm">
-                  <span className="font-medium">{index + 1}. {grade.questionId}</span>
-                  <Badge variant="outline">{QUESTION_TYPE_LABELS[grade.questionType]}</Badge>
-                  <Badge variant="secondary">
-                    {grade.score}/{grade.maxScore}
-                  </Badge>
-                  {typeof grade.isCorrect === "boolean" ? (
-                    <Badge variant={grade.isCorrect ? "default" : "destructive"}>
-                      {grade.isCorrect ? "Correct" : "Incorrect"}
+            <ScrollArea className="h-72 w-full pr-3">
+              {questionGrades.map((grade, index) => (
+                <div key={grade.id} className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2 text-sm">
+                    <span className="font-medium">
+                      {index + 1}. {grade.questionId}
+                    </span>
+                    <Badge variant="outline">
+                      {QUESTION_TYPE_LABELS[grade.questionType]}
                     </Badge>
+                    <Badge variant="secondary">
+                      {grade.score}/{grade.maxScore}
+                    </Badge>
+                    {typeof grade.isCorrect === "boolean" ? (
+                      <Badge
+                        variant={grade.isCorrect ? "default" : "destructive"}
+                      >
+                        {grade.isCorrect ? "Correct" : "Incorrect"}
+                      </Badge>
+                    ) : null}
+                  </div>
+                  {grade.feedback ? (
+                    <p className="text-xs text-muted-foreground">
+                      Feedback: {grade.feedback}
+                    </p>
                   ) : null}
+                  {index < questionGrades.length - 1 ? <Separator /> : null}
                 </div>
-                {grade.feedback ? (
-                  <p className="text-xs text-muted-foreground">Feedback: {grade.feedback}</p>
-                ) : null}
-                {index < questionGrades.length - 1 ? <Separator /> : null}
-              </div>
-            ))}
+              ))}
+              <ScrollBar orientation="vertical" />
+            </ScrollArea>
           </CardContent>
         </Card>
       ) : null}
 
-      <p className="text-xs text-muted-foreground">Answer format: {normalizedAnswers?.format ?? assignmentType}</p>
+      <p className="text-xs text-muted-foreground">
+        Answer format: {normalizedAnswers?.format ?? assignmentType}
+      </p>
     </div>
   );
 }

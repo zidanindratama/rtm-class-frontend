@@ -72,9 +72,49 @@ function normalizeMaterialType(type: string | null | undefined) {
   return normalized && normalized.length > 0 ? normalized : "OTHER";
 }
 
+function inferMaterialTypeFromMimeType(
+  mimeType: string | null | undefined,
+  fileUrl: string | null | undefined,
+) {
+  const normalizedMime = mimeType?.trim().toLowerCase() ?? "";
+  if (normalizedMime.includes("application/pdf")) return "PDF";
+  if (normalizedMime.includes("application/vnd.ms-powerpoint")) return "PPT";
+  if (
+    normalizedMime.includes(
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    )
+  ) {
+    return "PPTX";
+  }
+  if (normalizedMime.includes("application/msword")) return "DOC";
+  if (
+    normalizedMime.includes(
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    )
+  ) {
+    return "DOCX";
+  }
+  if (normalizedMime.startsWith("text/plain")) return "OTHER";
+
+  const normalizedUrl = fileUrl?.trim().toLowerCase() ?? "";
+  if (normalizedUrl.endsWith(".pdf")) return "PDF";
+  if (normalizedUrl.endsWith(".ppt")) return "PPT";
+  if (normalizedUrl.endsWith(".pptx")) return "PPTX";
+  if (normalizedUrl.endsWith(".doc")) return "DOC";
+  if (normalizedUrl.endsWith(".docx")) return "DOCX";
+
+  return "OTHER";
+}
+
 function normalizeAiStatus(
   status: string | null | undefined,
 ): MaterialAiStatusKey | "UNKNOWN" {
+  if (status === "READY" || status === "ARCHIVED") {
+    return "DONE";
+  }
+  if (status === "UPLOADED") {
+    return "PENDING";
+  }
   if (
     status === "PENDING" ||
     status === "PROCESSING" ||
@@ -230,7 +270,7 @@ export function ClassMaterialsPage({
   };
 
   return (
-    <section className="space-y-6">
+    <section >
       <div className="space-y-2">
         <Link
           href={backHref}
@@ -252,7 +292,7 @@ export function ClassMaterialsPage({
 
       <div className="mx-auto">
         {canManageMaterial ? (
-          <div className="flex my-3">
+          <div className="flex">
             <Button className="ml-auto" asChild>
               <Link
                 href={`/dashboard/my-class/${classId}/materials/create`}
@@ -268,7 +308,7 @@ export function ClassMaterialsPage({
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.55, ease: smoothEase }}
-          className="rounded-3xl border border-border/50 bg-card/60 p-5 backdrop-blur-sm md:p-6"
+          className="rounded-3xl border border-border/50 bg-card/60 p-5 mt-3 backdrop-blur-sm md:p-6"
         >
           <div className="flex flex-col gap-3">
             <Label className="relative block">
@@ -311,9 +351,9 @@ export function ClassMaterialsPage({
                 </SelectTrigger>
                 <SelectContent>
                   {sortOrderOptions.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {MATERIAL_SORT_ORDER_LABELS[option]}
-                    </SelectItem>
+                <SelectItem key={option} value={option}>
+                  {MATERIAL_SORT_ORDER_LABELS[option]}
+                </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -383,8 +423,19 @@ export function ClassMaterialsPage({
               className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3"
             >
               {materials.map((material, index) => {
-                const normalizedType = normalizeMaterialType(material.type);
-                const sourceUrl = material.sourceUrl?.trim();
+                const normalizedType = normalizeMaterialType(
+                  material.type ??
+                    inferMaterialTypeFromMimeType(
+                      material.fileMimeType,
+                      material.fileUrl ?? material.sourceUrl ?? null,
+                    ),
+                );
+                const sourceUrl = (material.fileUrl ?? material.sourceUrl)?.trim();
+                const teacherName =
+                  material.uploadedBy?.fullName?.trim() ||
+                  material.teacher?.fullName?.trim() ||
+                  "Unknown teacher";
+                const fallbackStatus = normalizeAiStatus(material.status);
 
                 return (
                   <motion.article
@@ -414,27 +465,7 @@ export function ClassMaterialsPage({
 
                     <div className="mt-4 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
                       <UserRound className="h-3.5 w-3.5" />
-                      {material.teacher?.fullName?.trim() || "Unknown teacher"}
-                    </div>
-
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {aiStatusItems.map((statusItem) => {
-                        const normalizedStatus = normalizeAiStatus(
-                          material.aiStatus?.[statusItem.key],
-                        );
-
-                        return (
-                          <Badge
-                            key={`${material.id}-${statusItem.key}`}
-                            variant={getAiStatusVariant(normalizedStatus)}
-                            className="rounded-md px-2 py-0.5 text-[11px]"
-                          >
-                            <Sparkles className="h-3 w-3" />
-                            {statusItem.label}:{" "}
-                            {MATERIAL_AI_STATUS_LABELS[normalizedStatus]}
-                          </Badge>
-                        );
-                      })}
+                      {teacherName}
                     </div>
 
                     <div className="mt-6 flex items-center justify-between border-t border-border/60 pt-3">

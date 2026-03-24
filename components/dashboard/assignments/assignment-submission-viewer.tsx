@@ -13,6 +13,7 @@ import {
   normalizeSubmissionAnswers,
 } from "./assignment-content-utils";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { alphaToIndex } from "@/lib/utils";
 
 type AssignmentSubmissionViewerProps = {
   assignmentType: AssignmentType;
@@ -54,8 +55,16 @@ export function AssignmentSubmissionViewer({
         <div className="space-y-3">
           {normalizedAnswers.responses.map((response, index) => {
             const question = mcqMap.get(response.questionId);
+            const answerIndex = alphaToIndex(response.answer);
             const optionText =
-              question?.options[response.answer.charCodeAt(0) - 65] ?? "";
+              answerIndex >= 0 ? (question?.options[answerIndex] ?? "") : "";
+            const correctOptionIndex = question
+              ? alphaToIndex(question.correctOption)
+              : -1;
+            const correctOptionText =
+              correctOptionIndex >= 0
+                ? question?.options[correctOptionIndex] ?? ""
+                : "";
 
             return (
               <Card
@@ -80,11 +89,7 @@ export function AssignmentSubmissionViewer({
                   {question ? (
                     <p className="text-xs text-muted-foreground">
                       Correct key: {ANSWER_LABELS[question.correctOption]} (
-                      {
-                        question.options[
-                          question.correctOption.charCodeAt(0) - 65
-                        ]
-                      }
+                      {correctOptionText}
                       )
                     </p>
                   ) : null}

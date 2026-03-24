@@ -18,19 +18,11 @@ import {
   PublicBlogSortBy,
   PublicBlogSortOrder,
 } from "./blog-public-types";
+import { formatDateLabel } from "@/lib/utils";
 
 const PAGE_SIZE = 6;
 
 type SortOption = "newest" | "oldest" | "title-asc";
-
-function formatDateLabel(iso: string | null) {
-  if (!iso) return "Not published";
-
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "Invalid date";
-
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(date);
-}
 
 function mapSortToApi(sortBy: SortOption): {
   sortBy: PublicBlogSortBy;
@@ -228,7 +220,9 @@ export function BlogsGrid() {
                   <div className="mt-6 flex items-center gap-4 text-xs text-muted-foreground">
                     <span className="inline-flex items-center gap-1.5">
                       <CalendarDays className="h-3.5 w-3.5" />
-                      {formatDateLabel(blog.publishedAt ?? blog.createdAt)}
+                      {formatDateLabel(blog.publishedAt ?? blog.createdAt, {
+                        emptyLabel: "Not published",
+                      })}
                     </span>
                     <span>By {blog.author?.fullName?.trim() || "Unknown author"}</span>
                   </div>

@@ -31,6 +31,7 @@ import {
   formatDateTimeLabel,
   normalizeAssignmentContent,
 } from "./assignment-content-utils";
+import { alphaToIndex } from "@/lib/utils";
 import {
   Empty,
   EmptyContent,
@@ -294,31 +295,35 @@ export function AssignmentWorkPage({
                         {number}. {question.question}
                       </p>
                       <div className="grid gap-2 md:grid-cols-2">
-                        {(["A", "B", "C", "D"] as McqOption[]).map((option) => (
-                          <button
-                            key={option}
-                            type="button"
-                            onClick={() =>
-                              setMcqAnswers((prev) => ({
-                                ...prev,
-                                [question.id]: option,
-                              }))
-                            }
-                            className={`rounded-md border px-3 py-2 text-left text-sm transition-colors ${
-                              currentAnswer === option
-                                ? "border-primary bg-primary/10"
-                                : "border-border/70 hover:border-primary/40"
-                            }`}
-                            disabled={!canSubmit}
-                          >
-                            <p className="font-medium">
-                              {OPTION_LABELS[option]}
-                            </p>
-                            <p className="text-muted-foreground">
-                              {question.options[option.charCodeAt(0) - 65]}
-                            </p>
-                          </button>
-                        ))}
+                        {(["A", "B", "C", "D"] as McqOption[]).map((option) => {
+                          const optionIndex = alphaToIndex(option);
+
+                          return (
+                            <button
+                              key={option}
+                              type="button"
+                              onClick={() =>
+                                setMcqAnswers((prev) => ({
+                                  ...prev,
+                                  [question.id]: option,
+                                }))
+                              }
+                              className={`rounded-md border px-3 py-2 text-left text-sm transition-colors ${
+                                currentAnswer === option
+                                  ? "border-primary bg-primary/10"
+                                  : "border-border/70 hover:border-primary/40"
+                              }`}
+                              disabled={!canSubmit}
+                            >
+                              <p className="font-medium">
+                                {OPTION_LABELS[option]}
+                              </p>
+                              <p className="text-muted-foreground">
+                                {optionIndex >= 0 ? question.options[optionIndex] : ""}
+                              </p>
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   );

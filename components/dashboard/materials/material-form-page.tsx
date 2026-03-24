@@ -72,6 +72,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ClassDetailResponse } from "@/components/dashboard/classes/class-types";
 import { APISingleResponse } from "@/types/api-response";
 import { authTokenStorage, axiosInstance } from "@/lib/axios-instance";
+import { formatDateTimeLabel } from "@/lib/utils";
 import {
   MaterialAiJob,
   MaterialJobsResponse,
@@ -250,16 +251,6 @@ function inferMimeTypeFromFileUrl(fileUrl: string) {
   if (withoutQuery.endsWith(".wav")) return "audio/wav";
 
   return undefined;
-}
-
-function formatDateTimeLabel(iso?: string | null) {
-  if (!iso) return "-";
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "-";
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
 }
 
 function getJobStatusBadgeVariant(status: MaterialAiJob["status"]) {
@@ -1136,7 +1127,10 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
               </p>
               {latestSummaryOutput ? (
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Updated: {formatDateTimeLabel(latestSummaryOutput.updatedAt)}
+                  Updated:{" "}
+                  {formatDateTimeLabel(latestSummaryOutput.updatedAt, {
+                    invalidLabel: "-",
+                  })}
                 </p>
               ) : null}
             </>
@@ -1560,10 +1554,16 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
                         </Badge>
                       </div>
                       <p className="mt-2 text-xs text-muted-foreground">
-                        Created: {formatDateTimeLabel(job.createdAt)}
+                        Created:{" "}
+                        {formatDateTimeLabel(job.createdAt, {
+                          invalidLabel: "-",
+                        })}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Completed: {formatDateTimeLabel(job.completedAt)}
+                        Completed:{" "}
+                        {formatDateTimeLabel(job.completedAt, {
+                          invalidLabel: "-",
+                        })}
                       </p>
                       {job.lastError ? (
                         <p className="mt-2 inline-flex items-start gap-1.5 text-xs text-destructive">
@@ -1616,7 +1616,9 @@ export function MaterialFormPage(props: MaterialFormPageProps) {
                                 {output.isPublished
                                   ? "Published"
                                   : "Draft"} -{" "}
-                                {formatDateTimeLabel(output.createdAt)}
+                                {formatDateTimeLabel(output.createdAt, {
+                                  invalidLabel: "-",
+                                })}
                               </p>
                               <p className="mt-1 line-clamp-3 text-sm text-foreground/90">
                                 {getOutputPreview(output)}

@@ -69,54 +69,18 @@ import type {
 } from "./assignment-ai-utils";
 import { AssignmentQuestionBuilderSection } from "./assignment-question-builder-section";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { cn } from "@/lib/utils";
+import {
+  appendSummaryToContentHtml,
+  cn,
+  formatDateLabel,
+  stripHtmlTags,
+} from "@/lib/utils";
 
 type ClassAssignmentsPageProps = {
   classId: string;
   backHref: string;
   backLabel: string;
 };
-
-function formatDateLabel(iso?: string | null) {
-  if (!iso) return "-";
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "Invalid date";
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(date);
-}
-
-function stripHtml(value: string) {
-  return value
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .trim();
-}
-
-function escapeHtml(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-}
-
-function appendSummaryToContent(contentHtml: string, summaryText: string) {
-  const trimmedSummary = summaryText.trim();
-  if (!trimmedSummary) {
-    return contentHtml;
-  }
-
-  const summaryHtml = trimmedSummary
-    .split(/\n{2,}/)
-    .map(
-      (paragraph) =>
-        `<p>${escapeHtml(paragraph).replaceAll("\n", "<br />")}</p>`,
-    )
-    .join("");
-  const summarySection = `<h3>Summary</h3>${summaryHtml}`;
-  const trimmedContent = contentHtml.trim();
-  return trimmedContent ? `${trimmedContent}${summarySection}` : summarySection;
-}
 
 export function ClassAssignmentsPage({
   classId,
@@ -320,7 +284,7 @@ export function ClassAssignmentsPage({
   const isCreateDraftDirty =
     title.trim().length > 0 ||
     description.trim().length > 0 ||
-    stripHtml(contentHtml).length > 0 ||
+    stripHtmlTags(contentHtml).length > 0 ||
     assignmentType !== "TASK" ||
     assignmentStatus !== "DRAFT" ||
     passingScore !== "70" ||
@@ -410,9 +374,7 @@ export function ClassAssignmentsPage({
     setPassingScore("70");
     setMaxScore("100");
     setDueAt(undefined);
-    setContentHtml(
-      appendSummaryToContent(draft.contentHtml, draft.summaryText),
-    );
+    setContentHtml(appendSummaryToContentHtml(draft.contentHtml, draft.summaryText));
     setLinkedMaterialId(draft.materialId);
     setAiGeneratedOutputs(draft.outputs.length > 0 ? draft.outputs : null);
     setAiSourceMaterial({

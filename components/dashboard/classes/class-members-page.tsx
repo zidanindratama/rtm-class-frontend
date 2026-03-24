@@ -39,7 +39,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { DeleteDialog } from "@/components/globals/dialog/delete-dialog";
-import { cn } from "@/lib/utils";
+import { cn, formatDateLabel, getInitials } from "@/lib/utils";
 import { authTokenStorage } from "@/lib/axios-instance";
 import {
   ClassDetailResponse,
@@ -54,25 +54,6 @@ type ClassMembersPageProps = {
 
 type MemberSortBy = "createdAt" | "fullName" | "email";
 type MemberSortOrder = "asc" | "desc";
-
-function formatDateLabel(iso: string) {
-  const date = new Date(iso);
-
-  if (Number.isNaN(date.getTime())) {
-    return "Invalid date";
-  }
-
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(date);
-}
-
-function getInitials(name: string) {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("");
-}
 
 export function ClassMembersPage({
   classId,

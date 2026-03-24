@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { DeleteDialog } from "@/components/globals/dialog/delete-dialog";
 import { authTokenStorage } from "@/lib/axios-instance";
+import { formatDateLabel } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -54,15 +55,6 @@ const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
 const sortByOptions: SortByOption[] = ["all", "createdAt", "name", "classCode"];
 const sortOrderOptions: SortOrderOption[] = ["all", "asc", "desc"];
-
-function formatDateLabel(iso: string | null) {
-  if (!iso) return "Unknown date";
-
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "Invalid date";
-
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(date);
-}
 
 export function MyClassGrid() {
   const smoothEase = [0.16, 1, 0.3, 1] as const;
@@ -359,7 +351,7 @@ export function MyClassGrid() {
                       </span>
                       <span className="inline-flex items-center gap-1.5">
                         <CalendarDays className="h-3.5 w-3.5" />
-                        {formatDateLabel(cls.createdAt)}
+                        {formatDateLabel(cls.createdAt, { emptyLabel: "Unknown date" })}
                       </span>
                     </div>
 

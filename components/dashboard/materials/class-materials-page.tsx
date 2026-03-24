@@ -30,7 +30,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  MATERIAL_AI_STATUS_LABELS,
   MATERIAL_SORT_BY_LABELS,
   MATERIAL_SORT_ORDER_LABELS,
   MATERIAL_TYPE_LABELS,
@@ -41,6 +40,7 @@ import {
   MaterialSortByOption,
   MaterialSortOrderOption,
 } from "./material-types";
+import { formatDateLabel } from "@/lib/utils";
 
 type ClassMaterialsPageProps = {
   classId: string;
@@ -52,20 +52,6 @@ const DEFAULT_PAGE_SIZE = 6;
 const PAGE_SIZE_OPTIONS = [6, 12, 24];
 const sortByOptions: MaterialSortByOption[] = ["all", "createdAt", "title"];
 const sortOrderOptions: MaterialSortOrderOption[] = ["all", "asc", "desc"];
-const aiStatusItems = [
-  { key: "mcq", label: "MCQ" },
-  { key: "essay", label: "Essay" },
-  { key: "summary", label: "Summary" },
-] as const;
-
-function formatDateLabel(iso: string | null | undefined) {
-  if (!iso) return "Unknown date";
-
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "Invalid date";
-
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(date);
-}
 
 function normalizeMaterialType(type: string | null | undefined) {
   const normalized = type?.trim().toUpperCase();
@@ -132,15 +118,6 @@ function getMaterialTypeVariant(
 ): "default" | "secondary" | "outline" {
   if (type === "PDF") return "default";
   if (type === "VIDEO") return "secondary";
-  return "outline";
-}
-
-function getAiStatusVariant(
-  status: MaterialAiStatusKey | "UNKNOWN",
-): "default" | "secondary" | "destructive" | "outline" {
-  if (status === "DONE") return "default";
-  if (status === "FAILED") return "destructive";
-  if (status === "PROCESSING") return "secondary";
   return "outline";
 }
 
@@ -450,7 +427,7 @@ export function ClassMaterialsPage({
                       </Badge>
                       <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
                         <CalendarDays className="h-3.5 w-3.5" />
-                        {formatDateLabel(material.createdAt)}
+                        {formatDateLabel(material.createdAt, { emptyLabel: "Unknown date" })}
                       </span>
                     </div>
 

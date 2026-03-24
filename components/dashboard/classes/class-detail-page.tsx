@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { authTokenStorage } from "@/lib/axios-instance";
+import { formatDateLabel } from "@/lib/utils";
 import { type AuthRole } from "@/routes/auth-keys";
 import { ClassDetailResponse } from "@/components/dashboard/classes/class-types";
 
@@ -53,16 +54,6 @@ type ClassDetailPageProps = {
   showMaterialsButton?: boolean;
   materialsHref?: string;
 };
-
-function formatDateLabel(iso: string) {
-  const date = new Date(iso);
-
-  if (Number.isNaN(date.getTime())) {
-    return "Invalid date";
-  }
-
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(date);
-}
 
 export function ClassDetailPage({
   classId,

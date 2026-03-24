@@ -5,19 +5,11 @@ import { ArrowLeft, CalendarDays } from "lucide-react";
 import { useGetData } from "@/hooks/use-get-data";
 import { APISingleResponse } from "@/types/api-response";
 import { PublicBlogPost } from "./blog-public-types";
+import { formatDateLabel } from "@/lib/utils";
 
 type BlogDetailHeroProps = {
   id: string;
 };
-
-function formatDateLabel(iso: string | null) {
-  if (!iso) return "Not published";
-
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "Invalid date";
-
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(date);
-}
 
 export function BlogDetailHero({ id }: BlogDetailHeroProps) {
   const {
@@ -89,7 +81,9 @@ export function BlogDetailHero({ id }: BlogDetailHeroProps) {
         <div className="mt-8 flex flex-wrap items-center gap-5 text-sm text-muted-foreground">
           <span className="inline-flex items-center gap-2">
             <CalendarDays className="h-4 w-4" />
-            {formatDateLabel(blog.publishedAt ?? blog.createdAt)}
+            {formatDateLabel(blog.publishedAt ?? blog.createdAt, {
+              emptyLabel: "Not published",
+            })}
           </span>
           <span>By {blog.author?.fullName?.trim() || "Unknown author"}</span>
         </div>

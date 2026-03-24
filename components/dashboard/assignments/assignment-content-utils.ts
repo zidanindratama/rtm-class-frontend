@@ -214,21 +214,4 @@ export function normalizeSubmissionAnswers(answers: unknown): SubmissionAnswersN
   return null;
 }
 
-export function formatDateTimeLabel(iso?: string | null): string {
-  if (!iso) return "-";
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "Invalid date";
-
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
-}
-
-export function formatDateLabel(iso?: string | null): string {
-  if (!iso) return "-";
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "Invalid date";
-
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(date);
-}
+export { formatDateLabel, formatDateTimeLabel } from "@/lib/utils";

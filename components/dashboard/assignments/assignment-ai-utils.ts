@@ -1,6 +1,7 @@
 "use client";
 
 import type { EssayQuestionDraft, McqQuestionDraft } from "./assignment-form-utils";
+import { textToHtmlParagraphs } from "@/lib/utils";
 
 export type AiJobStatus =
   | "accepted"
@@ -82,20 +83,6 @@ const getString = (source: GenericRecord, keys: string[]) => {
   return "";
 };
 
-const escapeHtml = (value: string) =>
-  value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-
-const textToHtml = (value: string) =>
-  value
-    .split(/\n{2,}/)
-    .map((paragraph) => `<p>${escapeHtml(paragraph).replaceAll("\n", "<br />")}</p>`)
-    .join("");
-
 const normalizePayload = (output: MaterialAiOutput) => {
   const preferred = output.editedContent ?? output.content;
   return isRecord(preferred) ? preferred : {};
@@ -109,7 +96,7 @@ const resolveInstructionsHtml = (payload: GenericRecord) => {
 
   const plainText = getString(payload, ["instructions", "instruction", "summary", "description"]);
   if (plainText) {
-    return textToHtml(plainText);
+    return textToHtmlParagraphs(plainText);
   }
 
   return "";

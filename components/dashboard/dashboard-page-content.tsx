@@ -4,9 +4,11 @@ import { BookOpen, CheckCircle2, ClipboardCheck, Medal, TrendingUp } from "lucid
 import type { LucideIcon } from "lucide-react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, XAxis, YAxis } from "recharts";
 import { useGetData } from "@/hooks/use-get-data";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { APISingleResponse } from "@/types/api-response";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   ChartContainer,
   ChartLegend,
@@ -132,6 +134,7 @@ export function DashboardPageContent({
   title: titleOverride,
   description: descriptionOverride,
 }: DashboardPageContentProps) {
+  const isMobile = useIsMobile();
   const {
     data: analyticsResponse,
     isLoading,
@@ -168,6 +171,12 @@ export function DashboardPageContent({
       ? item.fill
       : submissionStatusBluePalette[index % submissionStatusBluePalette.length],
   }));
+  const scoreTrendChartHeight = isMobile ? 220 : 290;
+  const submissionChartHeight = isMobile ? 240 : 290;
+  const topClassesViewportHeight = isMobile ? 260 : 290;
+  const topClassesChartHeight = Math.max(topClassesViewportHeight, model.topClasses.length * 46);
+  const truncateClassName = (value: string) =>
+    isMobile && value.length > 14 ? `${value.slice(0, 14)}...` : value;
 
   return (
     <section className="space-y-8">
@@ -208,17 +217,27 @@ export function DashboardPageContent({
       </div>
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <Card className="border-border/70">
+        <Card className="min-w-0 border-border/70">
           <CardHeader className="pb-3">
             <CardTitle>Average Score Trend</CardTitle>
             <CardDescription>Weekly score trend from recent assessments.</CardDescription>
           </CardHeader>
-          <CardContent>
-            <ChartContainer config={scoreTrendChartConfig} className="h-[290px] w-full">
+          <CardContent className="min-w-0">
+            <ChartContainer
+              config={scoreTrendChartConfig}
+              className="w-full min-w-0"
+              style={{ height: `${scoreTrendChartHeight}px` }}
+            >
               <AreaChart data={model.scoreTrend} margin={{ left: 8, right: 8, top: 6 }}>
                 <CartesianGrid vertical={false} />
                 <XAxis dataKey="week" tickLine={false} axisLine={false} tickMargin={10} />
-                <YAxis tickLine={false} axisLine={false} tickMargin={10} width={34} domain={[0, 100]} />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={10}
+                  width={isMobile ? 28 : 34}
+                  domain={[0, 100]}
+                />
                 <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="line" />} />
                 <Area
                   dataKey="averageScore"
@@ -233,21 +252,25 @@ export function DashboardPageContent({
           </CardContent>
         </Card>
 
-        <Card className="border-border/70">
+        <Card className="min-w-0 border-border/70">
           <CardHeader className="pb-3">
             <CardTitle>Submission Status</CardTitle>
             <CardDescription>Distribution of assignment submission status.</CardDescription>
           </CardHeader>
-          <CardContent>
-            <ChartContainer config={submissionChartConfig} className="h-[290px] w-full">
+          <CardContent className="min-w-0">
+            <ChartContainer
+              config={submissionChartConfig}
+              className="w-full min-w-0"
+              style={{ height: `${submissionChartHeight}px` }}
+            >
               <PieChart>
                 <ChartTooltip content={<ChartTooltipContent hideIndicator />} />
                 <Pie
                   data={submissionStatusData}
                   dataKey="value"
                   nameKey="name"
-                  innerRadius={65}
-                  outerRadius={102}
+                  innerRadius={isMobile ? 48 : 65}
+                  outerRadius={isMobile ? 78 : 102}
                   strokeWidth={2}
                 >
                   {submissionStatusData.map((entry, index) => (
@@ -257,7 +280,7 @@ export function DashboardPageContent({
                     />
                   ))}
                 </Pie>
-                <ChartLegend content={<ChartLegendContent nameKey="name" />} />
+                <ChartLegend content={<ChartLegendContent nameKey="name" className="flex-wrap gap-2" />} />
               </PieChart>
             </ChartContainer>
           </CardContent>
@@ -265,21 +288,39 @@ export function DashboardPageContent({
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-        <Card className="border-border/70">
+        <Card className="min-w-0 border-border/70">
           <CardHeader className="pb-3">
             <CardTitle>{model.topChartTitle}</CardTitle>
             <CardDescription>{model.topChartDescription}</CardDescription>
           </CardHeader>
-          <CardContent>
-            <ChartContainer config={topClassesChartConfig} className="h-[290px] w-full">
-              <BarChart data={model.topClasses} margin={{ left: 8, right: 8, top: 4 }}>
-                <CartesianGrid vertical={false} />
-                <XAxis dataKey="className" tickLine={false} axisLine={false} tickMargin={10} />
-                <YAxis tickLine={false} axisLine={false} tickMargin={10} width={34} domain={[0, 100]} />
-                <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-                <Bar dataKey="score" fill="var(--color-score)" radius={[6, 6, 0, 0]} barSize={36} />
-              </BarChart>
-            </ChartContainer>
+          <CardContent className="min-w-0">
+            <ScrollArea className="w-full" style={{ height: `${topClassesViewportHeight}px` }}>
+              <ChartContainer
+                config={topClassesChartConfig}
+                className="w-full min-w-0"
+                style={{ height: `${topClassesChartHeight}px` }}
+              >
+                <BarChart
+                  data={model.topClasses}
+                  layout="vertical"
+                  margin={{ left: 4, right: 12, top: 4, bottom: 4 }}
+                >
+                  <CartesianGrid vertical={false} />
+                  <XAxis type="number" tickLine={false} axisLine={false} tickMargin={8} domain={[0, 100]} />
+                  <YAxis
+                    type="category"
+                    dataKey="className"
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    width={isMobile ? 110 : 180}
+                    tickFormatter={truncateClassName}
+                  />
+                  <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                  <Bar dataKey="score" fill="var(--color-score)" radius={[0, 6, 6, 0]} barSize={18} />
+                </BarChart>
+              </ChartContainer>
+            </ScrollArea>
           </CardContent>
         </Card>
 

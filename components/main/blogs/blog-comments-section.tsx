@@ -24,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { formatDateTimeLabel, getInitials } from "@/lib/utils";
 import {
   PublicBlogComment,
   PublicBlogCommentsResponse,
@@ -41,25 +42,6 @@ type AuthMeResponseData = {
     role: string;
   };
 };
-
-function formatDateTimeLabel(iso: string) {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "Invalid date";
-
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
-}
-
-function getInitials(name: string) {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((chunk) => chunk[0]?.toUpperCase() ?? "")
-    .join("");
-}
 
 export function BlogCommentsSection({ slug }: BlogCommentsSectionProps) {
   const [page, setPage] = useState(1);

@@ -1,9 +1,7 @@
 import axios from "axios";
 import { cookies } from "next/headers";
 import { ACCESS_TOKEN_KEY } from "@/routes/auth-keys";
-
-const DEFAULT_API_BASE_URL = "https://backend.rtm-corndog.my.id/api/v1";
-const DEFAULT_CLIENT_DOMAIN = "http://localhost:3000";
+import { DEFAULT_API_BASE_URL, DEFAULT_CLIENT_DOMAIN } from "./axios-instance";
 
 const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL ?? DEFAULT_API_BASE_URL;
 
